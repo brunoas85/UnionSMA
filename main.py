@@ -2,10 +2,10 @@ import flet as ft
 
 def main(page: ft.Page):
     page.title = "Unión Senior SMA"
-    page.scroll = "always" 
+    page.scroll = "always"
     page.window_width = 450
     page.window_height = 800
-    page.bgcolor = "#F5F5F5"
+    page.bgcolor = "white"
     page.padding = 10
     page.assets_dir = "assets"
 
@@ -22,59 +22,80 @@ def main(page: ft.Page):
     # --- VISTA: FECHA ---
     def vista_partidos():
         return ft.Column(
-            scroll="always", 
+            scroll="always",
             expand=True,
+            horizontal_alignment="center",
             controls=[
-                ft.Text("PRÓXIMA FECHA", size=30, weight="bold"),
-                ft.Card(
-                    content=ft.Container(
-                        padding=20,
-                        width=380, # Mantiene el ancho forzado para que el texto NO se vuelva vertical
-                        content=ft.Column(
-                            controls=[
-                                ft.ListTile(
-                                    leading=ft.Icon("sports_soccer", color="red"),
-                                    title=ft.Text("Vs. Los Amigos FC", size=20, weight="bold"),
-                                    subtitle=ft.Text("Sábado - 15:30hs"),
-                                ),
-                                ft.Divider(),
-                                ft.ListTile(
-                                    leading=ft.Icon("location_on", color="red"),
-                                    title=ft.Text("Cancha Municipal"),
-                                    subtitle=ft.Text("San Martín de los Andes"),
-                                ),
-                                ft.Container(height=5),
-                                
-                                # BOTÓN A PRUEBA DE BALAS (Container clickeable)
-                                ft.Container(
-                                    content=ft.Text("¿CÓMO LLEGAR?", color="white", weight="bold"),
-                                    bgcolor="red",
-                                    alignment="center",
-                                    width=300,
-                                    height=50,
-                                    border_radius=5,
-                                    ink=True, # Efecto visual de "onda" al hacer click
-                                    on_click=lambda e: print("Acá abriremos el mapa") 
-                                )
-                            ],
-                            horizontal_alignment="center"
-                        )
+                ft.Container(height=20), 
+                ft.Text("PRÓXIMA FECHA", size=28, weight="bold", color="black"),
+                
+                # Bloque del Partido (Ancho fijo para evitar texto vertical)
+                ft.Container(
+                    width=380,
+                    padding=20,
+                    bgcolor="#f8f9fa",
+                    border_radius=15,
+                    border=ft.border.all(1, "#dddddd"),
+                    content=ft.Column(
+                        horizontal_alignment="center",
+                        controls=[
+                            ft.ListTile(
+                                leading=ft.Icon("sports_soccer", color="red", size=30),
+                                title=ft.Text("Vs. Los Amigos FC", size=20, weight="bold", no_wrap=True),
+                                subtitle=ft.Text("Sábado - 15:30hs", size=16),
+                            ),
+                            ft.Divider(height=1, color="#EEEEEE"),
+                            ft.ListTile(
+                                leading=ft.Icon("location_on", color="red", size=30),
+                                title=ft.Text("Cancha Municipal", size=20, weight="bold", no_wrap=True),
+                                subtitle=ft.Text("San Martín de los Andes", size=16),
+                            ),
+                        ]
                     )
                 ),
-                # SCROLL HORIZONTAL
+
+                ft.Container(height=20),
+                
+                # Botones
                 ft.Row(
-                    scroll="always",
+                    alignment="center",
+                    spacing=20,
+                    controls=[
+                        ft.ElevatedButton(
+                            "MAPA", 
+                            icon="map", # Solo el nombre entre comillas
+                            style=ft.ButtonStyle(bgcolor="blue", color="white")
+                        ),
+                        ft.ElevatedButton(
+                            "VOY", 
+                            icon="check", # Solo el nombre entre comillas
+                            style=ft.ButtonStyle(bgcolor="green", color="white")
+                        ),
+                    ]
+                ),
+
+                # --- SECCIÓN DE TABLA Y NOTICIAS ---
+                ft.Container(height=30),
+                ft.Text("TABLA Y NOTICIAS", size=18, weight="bold"),
+                ft.Row(
+                    scroll="auto",
+                    spacing=15,
                     controls=[
                         ft.Container(
-                            width=600, 
-                            height=120, 
-                            bgcolor="white",
-                            border_radius=10,
-                            padding=20,
-                            content=ft.Text("TABLA DE POSICIONES (Deslizá a la derecha para ver más detalles) -->", size=16)
-                        )
+                            padding=15, bgcolor="#F5F5F5", border_radius=10, width=300,
+                            content=ft.Text("Posición en torneo: 3ro. Próximo rival directo.", size=14)
+                        ),
+                        ft.Container(
+                            padding=15, bgcolor="#F5F5F5", border_radius=10, width=300,
+                            content=ft.Text("Goleador del equipo: Silva, Facundo con 5 goles.", size=14)
+                        ),
+                        ft.Container(
+                            padding=15, bgcolor="#F5F5F5", border_radius=10, width=300,
+                            content=ft.Text("Llevar camiseta alternativa (blanca) por si acaso.", size=14)
+                        ),
                     ]
-                )
+                ),
+                ft.Container(height=50) 
             ]
         )
 
@@ -85,11 +106,12 @@ def main(page: ft.Page):
             lista.controls.append(
                 ft.Container(
                     content=ft.ListTile(leading=ft.Icon("person"), title=ft.Text(nombre)),
-                    bgcolor="white", border_radius=10
+                    bgcolor="white", border_radius=10,
+                    border=ft.border.all(1, "#EEEEEE")
                 )
             )
         return ft.Column([
-            ft.Text("PLANTEL", size=25, weight="bold"),
+            ft.Container(padding=15, content=ft.Text("PLANTEL", size=25, weight="bold")),
             lista
         ], expand=True)
 
@@ -109,11 +131,19 @@ def main(page: ft.Page):
     )
 
     page.appbar = ft.AppBar(
-        leading=ft.Image(src="UnionEscudo.png", fit="contain"),
-        leading_width=50, 
-        title=ft.Text("UNIÓN SENIOR SMA", color="white", weight="bold"),
-        bgcolor="red",
+        title=ft.Row(
+            controls=[
+                ft.Text("UNIÓN", weight="bold", color="white", size=24),
+                ft.Image(src="UnionEscudo.png", height=100, fit="contain"),
+                ft.Text("San Martín\nde los Andes", color="white", size=18, weight="bold", text_align="center")
+            ],
+            alignment="center",
+            vertical_alignment="center",
+            spacing=15
+        ),
         center_title=True,
+        toolbar_height=120,
+        bgcolor="red",
     )
 
     page.add(contenedor_principal)
