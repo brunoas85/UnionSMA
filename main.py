@@ -1,4 +1,6 @@
 import flet as ft
+import csv
+from datetime import datetime
 
 def main(page: ft.Page):
     page.title = "Unión Senior SMA"
@@ -9,6 +11,107 @@ def main(page: ft.Page):
     page.bgcolor = "white"
     page.padding = 10
     page.assets_dir = "assets"
+
+    # Configurar drawer primero
+    def ir_a_inicio_desde_drawer():
+        page.drawer.open = False
+        contenedor_principal.content = vista_partidos()
+        page.update()
+
+    def ir_a_plantel_desde_drawer():
+        page.drawer.open = False
+        contenedor_principal.content = vista_plantel()
+        page.update()
+
+    def ir_a_tabla_desde_drawer():
+        page.drawer.open = False
+        contenedor_principal.content = vista_tabla_posiciones()
+        page.update()
+
+    def ir_a_notificaciones_desde_drawer():
+        page.drawer.open = False
+        contenedor_principal.content = vista_notificaciones()
+        page.update()
+
+    def ir_a_fixture_desde_drawer():
+        page.drawer.open = False
+        contenedor_principal.content = vista_fixture()
+        page.update()
+
+    # Crear drawer personalizado
+    drawer_visible = False
+    
+    drawer_container = ft.Container(
+        width=280,
+        left=-280,  # Inicialmente oculto
+        top=0,
+        height=page.height,
+        bgcolor="#FFFFFF",
+        shadow=ft.BoxShadow(blur_radius=10, color="#00000030"),
+        content=ft.Column(
+            controls=[
+                ft.Container(
+                    padding=20,
+                    bgcolor="#B71C1C",
+                    content=ft.Column([
+                        ft.Text("UNIÓN SENIOR", size=20, weight="bold", color="white"),
+                        ft.Text("San Martín de los Andes", size=12, color="white")
+                    ], spacing=4)
+                ),
+                ft.Divider(height=1),
+                ft.ListTile(
+                    leading=ft.Icon("notifications_active", color="#B71C1C"),
+                    title=ft.Text("Notificaciones", size=16),
+                    on_click=lambda _: ir_a_notificaciones_desde_drawer()
+                ),
+                ft.ListTile(
+                    leading=ft.Icon("home", color="#B71C1C"),
+                    title=ft.Text("Inicio", size=16),
+                    on_click=lambda _: ir_a_inicio_desde_drawer()
+                ),
+                ft.ListTile(
+                    leading=ft.Icon("groups", color="#B71C1C"),
+                    title=ft.Text("Plantel", size=16),
+                    on_click=lambda _: ir_a_plantel_desde_drawer()
+                ),
+                ft.ListTile(
+                    leading=ft.Icon("leaderboard", color="#B71C1C"),
+                    title=ft.Text("Tabla", size=16),
+                    on_click=lambda _: ir_a_tabla_desde_drawer()
+                ),
+                ft.ListTile(
+                    leading=ft.Icon("schedule", color="#B71C1C"),
+                    title=ft.Text("Fixture", size=16),
+                    on_click=lambda _: ir_a_fixture_desde_drawer()
+                ),
+            ],
+            scroll="auto"
+        )
+    )
+    
+    drawer_overlay = ft.Container(
+        width=page.width,
+        height=page.height,
+        left=0,
+        top=0,
+        bgcolor="#00000080",
+        visible=False,
+        on_click=lambda e: cerrar_drawer()
+    )
+    
+    def abrir_drawer(e):
+        nonlocal drawer_visible
+        drawer_visible = True
+        drawer_overlay.visible = True
+        drawer_container.left = 0
+        page.update()
+    
+    def cerrar_drawer():
+        nonlocal drawer_visible
+        drawer_visible = False
+        drawer_overlay.visible = False
+        drawer_container.left = -280
+        page.update()
 
     def mostrar_snackbar(mensaje: str):
         page.snack_bar = ft.SnackBar(ft.Text(mensaje))
@@ -39,12 +142,56 @@ def main(page: ft.Page):
         {"nombre": "Oliva, Horacio Sebastian", "posicion": "Arquero", "goles": 0, "amarillas": 0}
     ]
 
-    proximo_encuentro = {
-        "rival": "Chapelco",
-        "fecha": "18/04/2026",
-        "hora": "16:00",
-        "cancha": "San Martín de los Andes"
-    }
+    # Cargar partidos desde archivo CSV
+    partidos_lista = []
+    try:
+        with open("partidos.csv", "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                partidos_lista.append({
+                    "fecha": row["fecha"],
+                    "hora": row["hora"],
+                    "rival": row["rival"],
+                    "cancha": row["cancha"],
+                    "categoria": row["categoria"],
+                    "resultado": row.get("resultado", "")
+                })
+    except FileNotFoundError:
+        partidos_lista = []
+
+    # Función para obtener el próximo partido según la fecha actual
+    def obtener_proximo_partido():
+        hoy = datetime.now().date()
+        for partido in partidos_lista:
+            fecha_partido = datetime.strptime(partido["fecha"], "%Y-%m-%d").date()
+            if fecha_partido >= hoy:
+                return {
+                    "rival": partido["rival"],
+                    "fecha": partido["fecha"],
+                    "hora": partido["hora"],
+                    "cancha": partido["cancha"],
+                    "fecha_formateada": fecha_partido.strftime("%d/%m/%Y")
+                }
+        # Si no hay más partidos, retornar el último o uno por defecto
+        if partidos_lista:
+            ultimo = partidos_lista[-1]
+            fecha_ultimo = datetime.strptime(ultimo["fecha"], "%Y-%m-%d").date()
+            return {
+                "rival": ultimo["rival"],
+                "fecha": ultimo["fecha"],
+                "hora": ultimo["hora"],
+                "cancha": ultimo["cancha"],
+                "fecha_formateada": fecha_ultimo.strftime("%d/%m/%Y")
+            }
+        return {
+            "rival": "Por confirmar",
+            "fecha": "---",
+            "hora": "---",
+            "cancha": "---",
+            "fecha_formateada": "---"
+        }
+
+    proximo_encuentro = obtener_proximo_partido()
 
     equipos_torneo = {
         "Zona A": ["Frontera", "Comunicaciones", "Las Rosas", "Arenal", "Velez", "Sarmiento", "Union", "Dinamo"],
@@ -128,7 +275,7 @@ def main(page: ft.Page):
                         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                         ft.Divider(thickness=1, color="#D81B60"),
                         ft.Text(f"{proximo_encuentro['rival']}", size=22, weight="bold", color="#B71C1C"),
-                        ft.Text(f"{proximo_encuentro['fecha']} · {proximo_encuentro['hora']}", size=14),
+                        ft.Text(f"{proximo_encuentro['fecha_formateada']} · {proximo_encuentro['hora']}", size=14),
                         ft.Text(f"Estadio: {proximo_encuentro['cancha']}", size=14),
                         ft.Container(height=10),
                         ft.Text("Asegurate de llegar a tiempo y llevar la camiseta blanca.", size=12, color="grey")
@@ -175,31 +322,21 @@ def main(page: ft.Page):
                         )
                     ]
                 ),
-                ft.Container(height=30),
-                ft.Text("EQUIPOS DEL TORNEO", size=18, weight="bold"),
+                ft.Container(height=15),
                 ft.Row(
-                    scroll="auto",
-                    wrap=True,
-                    spacing=15,
-                    run_spacing=15,
-                    controls=equipos_controls
-                ),
-                ft.Container(height=30),
-                ft.Text("NOTIFICACIONES", size=18, weight="bold"),
-                ft.Column(
-                    spacing=10,
+                    alignment=ft.MainAxisAlignment.CENTER,
                     controls=[
-                        ft.Container(
-                            padding=15, bgcolor="#FFF3E0", border_radius=10,
-                            content=ft.Text("Recordatorio: Próximo partido vs Chapelco el 18/04 a las 16:00", size=14)
-                        ),
-                        ft.Container(
-                            padding=15, bgcolor="#E8F5E8", border_radius=10,
-                            content=ft.Text("Felicitaciones al equipo por la victoria en el último partido!", size=14)
-                        ),
-                        ft.Container(
-                            padding=15, bgcolor="#FFEBEE", border_radius=10,
-                            content=ft.Text("Importante: Llevar camiseta alternativa blanca.", size=14)
+                        ft.FilledButton(
+                            "Fixture",
+                            icon="schedule",
+                            icon_color="white",
+                            style=ft.ButtonStyle(
+                                bgcolor="#C62828",
+                                color="white",
+                                padding=20,
+                                shape=ft.RoundedRectangleBorder(radius=10)
+                            ),
+                            on_click=lambda _: ir_a_fixture()
                         )
                     ]
                 ),
@@ -224,6 +361,156 @@ def main(page: ft.Page):
                 ft.Container(height=20)
             ]
         )
+
+    def vista_notificaciones():
+        return ft.Column([
+            ft.Row(
+                controls=[
+                    ft.Icon("notifications_active", size=28, color="#B71C1C"),
+                    ft.Text("NOTIFICACIONES", size=20, weight="bold")
+                ],
+                spacing=10,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER
+            ),
+            ft.Container(height=20),
+            ft.Column(
+                spacing=12,
+                controls=[
+                    ft.Container(
+                        padding=15, bgcolor="#FFF9E6", border_radius=12,
+                        border=ft.Border.all(2, "#FFB74D"),
+                        content=ft.Row([
+                            ft.Icon("info", size=24, color="#FF6F00"),
+                            ft.Column([
+                                ft.Text("Recordatorio", size=13, weight="bold", color="#FF6F00"),
+                                ft.Text("Próximo partido vs Dinamo el 19/04 a las 11:45", size=13)
+                            ], spacing=2)
+                        ], spacing=12, vertical_alignment=ft.CrossAxisAlignment.START)
+                    ),
+                    ft.Container(
+                        padding=15, bgcolor="#E8F5E9", border_radius=12,
+                        border=ft.Border.all(2, "#66BB6A"),
+                        content=ft.Row([
+                            ft.Icon("celebration", size=24, color="#2E7D32"),
+                            ft.Column([
+                                ft.Text("¡Bien hecho!", size=13, weight="bold", color="#2E7D32"),
+                                ft.Text("Excelente performance en el último partido", size=13)
+                            ], spacing=2)
+                        ], spacing=12, vertical_alignment=ft.CrossAxisAlignment.START)
+                    ),
+                    ft.Container(
+                        padding=15, bgcolor="#FFEBEE", border_radius=12,
+                        border=ft.Border.all(2, "#EF5350"),
+                        content=ft.Row([
+                            ft.Icon("warning", size=24, color="#C62828"),
+                            ft.Column([
+                                ft.Text("Importante", size=13, weight="bold", color="#C62828"),
+                                ft.Text("Llevar camiseta alternativa blanca para el próximo partido", size=13)
+                            ], spacing=2)
+                        ], spacing=12, vertical_alignment=ft.CrossAxisAlignment.START)
+                    )
+                ]
+            )
+        ], expand=True, scroll="always")
+
+    # --- VISTA: FIXTURE ---
+    def vista_fixture():
+        partidos_controls = []
+        hoy = datetime.now().date()
+        
+        for i, partido in enumerate(partidos_lista):
+            fecha_obj = datetime.strptime(partido["fecha"], "%Y-%m-%d").date()
+            fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
+            dia_semana = fecha_obj.strftime("%A").upper()
+            
+            # Determinar si el partido ya se jugó
+            ya_se_jugo = fecha_obj < hoy
+            tiene_resultado = partido.get("resultado", "").strip() != ""
+            
+            # Color según si ya se jugó
+            if ya_se_jugo and tiene_resultado:
+                bgcolor = "#C8E6C9"  # Verde claro para partidos jugados
+                color_texto = "#1B5E20"  # Verde oscuro
+                color_rival = "#1B5E20"
+            else:
+                bgcolor = "#FFF3E0"  # Naranja claro para próximos
+                color_texto = "#B71C1C"  # Rojo para próximos
+                color_rival = "#B71C1C"
+            
+            # Construir el contenido de la card
+            card_controls = [
+                ft.Row([
+                    ft.Column([
+                        ft.Text(f"Fecha {i+1}", size=12, weight="bold", color=color_texto),
+                        ft.Text(fecha_formateada, size=14, weight="bold")
+                    ]),
+                    ft.Text(partido["hora"], size=14, weight="bold")
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                ft.Divider(thickness=1, color="#E0E0E0"),
+            ]
+            
+            # Agregar el resultado si el partido ya se jugó
+            if ya_se_jugo and tiene_resultado:
+                resultado = partido["resultado"]
+                card_controls.append(
+                    ft.Text(f"vs {partido['rival']}", size=16, weight="bold", color=color_rival)
+                )
+                card_controls.append(
+                    ft.Container(
+                        padding=10,
+                        bgcolor="white",
+                        border_radius=8,
+                        content=ft.Text(f"Resultado: {resultado}", size=14, weight="bold", color=color_rival)
+                    )
+                )
+            else:
+                card_controls.append(
+                    ft.Text(f"vs {partido['rival']}", size=16, weight="bold", color=color_rival)
+                )
+            
+            card_controls.append(
+                ft.Text(f"Cancha: {partido['cancha']}", size=12, color="grey")
+            )
+            
+            partidos_controls.append(
+                ft.Container(
+                    padding=12,
+                    bgcolor=bgcolor,
+                    border_radius=10,
+                    border=ft.Border.all(1, "#E0E0E0") if not ya_se_jugo else ft.Border.all(2, "#4CAF50"),
+                    content=ft.Column(card_controls, spacing=6)
+                )
+            )
+
+        cabecera = ft.Row(
+            controls=[
+                ft.FilledButton(
+                    "",
+                    icon="home",
+                    icon_color="#1976D2",
+                    bgcolor="#E0E0E0",
+                    width=44,
+                    height=44,
+                    on_click=lambda _: volver_a_inicio()
+                ),
+                ft.Text("FIXTURE", size=22, weight="bold")
+            ],
+            alignment="start",
+            vertical_alignment="center",
+            spacing=10
+        )
+
+        return ft.Column([
+            ft.Container(padding=15, content=cabecera),
+            ft.Container(height=10),
+            ft.Column(
+                spacing=10,
+                scroll="always",
+                expand=True,
+                controls=partidos_controls
+            ),
+            ft.Container(height=20)
+        ], expand=True)
 
     # --- VISTA: PLANTEL ---
     def vista_plantel():
@@ -347,7 +634,7 @@ def main(page: ft.Page):
         # Mención al goleador de turno
         goleador_turno = ft.Container(
             padding=15, bgcolor="#FFEBEE", border_radius=10,
-            content=ft.Text("GOLEADOR DE TURNO: Silva, Facundo con 5 goles", size=16, weight="bold", color="#D32F2F")
+            content=ft.Text("GOLEADOR DE LA FECHA: Salazar, Bruno con 5 goles", size=16, weight="bold", color="#D32F2F")
         )
 
         cabecera = ft.Row(
@@ -391,6 +678,10 @@ def main(page: ft.Page):
             contenedor_principal.content = vista_plantel()
         elif current_view == "tabla":
             contenedor_principal.content = vista_tabla_posiciones()
+        elif current_view == "fixture":
+            contenedor_principal.content = vista_fixture()
+        elif current_view == "notificaciones":
+            contenedor_principal.content = vista_notificaciones()
         page.update()
 
     page.on_resize = on_resize
@@ -409,7 +700,6 @@ def main(page: ft.Page):
     def ir_a_plantel():
         nonlocal current_view
         current_view = "plantel"
-        page.navigation_bar.selected_index = 1
         contenedor_principal.content = vista_plantel()
         page.update()
 
@@ -419,37 +709,89 @@ def main(page: ft.Page):
         contenedor_principal.content = vista_tabla_posiciones()
         page.update()
 
+    def ir_a_fixture():
+        nonlocal current_view
+        current_view = "fixture"
+        contenedor_principal.content = vista_fixture()
+        page.update()
+
+    def ir_a_notificaciones():
+        nonlocal current_view
+        current_view = "notificaciones"
+        contenedor_principal.content = vista_notificaciones()
+        page.update()
+
     def volver_a_inicio():
         nonlocal current_view
         current_view = "fecha"
-        page.navigation_bar.selected_index = 0
         contenedor_principal.content = vista_partidos()
         page.update()
 
-    page.navigation_bar = ft.NavigationBar(
-        destinations=[
-            ft.NavigationBarDestination(icon="calendar_month", label="Fecha"),
-            ft.NavigationBarDestination(icon="groups", label="Equipo"),
-        ],
-        on_change=cambio_tab,
-    )
+    # --- DRAWER (Menú Lateral) ---
+    def ir_a_inicio_desde_drawer():
+        nonlocal current_view
+        current_view = "fecha"
+        page.drawer.open = False
+        contenedor_principal.content = vista_partidos()
+        page.update()
+
+    def ir_a_plantel_desde_drawer():
+        nonlocal current_view
+        current_view = "plantel"
+        page.drawer.open = False
+        contenedor_principal.content = vista_plantel()
+        page.update()
+
+    def ir_a_tabla_desde_drawer():
+        nonlocal current_view
+        current_view = "tabla"
+        page.drawer.open = False
+        contenedor_principal.content = vista_tabla_posiciones()
+        page.update()
+
+    def ir_a_notificaciones_desde_drawer():
+        nonlocal current_view
+        current_view = "notificaciones"
+        page.drawer.open = False
+        contenedor_principal.content = vista_notificaciones()
+        page.update()
+
+    def ir_a_fixture_desde_drawer():
+        nonlocal current_view
+        current_view = "fixture"
+        page.drawer.open = False
+        contenedor_principal.content = vista_fixture()
+        page.update()
+
+    def abrir_drawer(e):
+        if hasattr(page, 'drawer') and page.drawer:
+            page.drawer.open = True
+            page.update()
+        else:
+            mostrar_snackbar("Drawer no configurado")
 
     page.appbar = ft.AppBar(
+        leading=ft.IconButton(
+            icon=ft.Icons.MENU,
+            icon_color="white",
+            icon_size=28,
+            on_click=abrir_drawer
+        ),
         title=ft.Row(
             controls=[
                 ft.Column([
                     ft.Text("UNIÓN", weight="bold", color="white", size=36),
                     ft.Text("San Martín de los Andes", color="white", size=16)
-                ], spacing=4),
-                ft.Image(src="UnionEscudo.png", height=120, fit="contain")
+                ], spacing=2),
+                ft.Image(src="UnionEscudo.png", height=72, fit="contain")
             ],
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            alignment=ft.MainAxisAlignment.START,
             spacing=12,
-            wrap=True
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            expand=True
         ),
-        center_title=True,
-        toolbar_height=120,
+        center_title=False,
+        toolbar_height=100,
         bgcolor="#B71C1C",
     )
 
@@ -464,7 +806,7 @@ def main(page: ft.Page):
         alignment=ft.Alignment.CENTER
     )
 
-    page.add(contenedor_principal, footer)
+    page.add(drawer_overlay, drawer_container, contenedor_principal, footer)
 
 if __name__ == "__main__":
     ft.run(main)
