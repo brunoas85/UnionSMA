@@ -1,6 +1,7 @@
 import flet as ft
 import csv
 from datetime import datetime
+from notificaciones import vista_notificaciones
 
 def main(page: ft.Page):
     page.title = "Unión Senior SMA"
@@ -12,31 +13,20 @@ def main(page: ft.Page):
     page.padding = 10
     page.assets_dir = "assets"
 
-    # Configurar drawer primero
-    def ir_a_inicio_desde_drawer():
-        page.drawer.open = False
-        contenedor_principal.content = vista_partidos()
-        page.update()
-
-    def ir_a_plantel_desde_drawer():
-        page.drawer.open = False
-        contenedor_principal.content = vista_plantel()
-        page.update()
-
-    def ir_a_tabla_desde_drawer():
-        page.drawer.open = False
-        contenedor_principal.content = vista_tabla_posiciones()
-        page.update()
-
-    def ir_a_notificaciones_desde_drawer():
-        page.drawer.open = False
-        contenedor_principal.content = vista_notificaciones()
-        page.update()
-
-    def ir_a_fixture_desde_drawer():
-        page.drawer.open = False
-        contenedor_principal.content = vista_fixture()
-        page.update()
+    def navegar_a(vista_nombre):
+        nonlocal current_view
+        current_view = vista_nombre
+        vistas = {
+            "fecha": vista_partidos,
+            "plantel": vista_plantel,
+            "tabla": vista_tabla_posiciones,
+            "fixture": vista_fixture,
+            "notificaciones": vista_notificaciones
+        }
+        if vista_nombre in vistas:
+            contenedor_principal.content = vistas[vista_nombre]()
+            cerrar_drawer()
+            page.update()
 
     # Crear drawer personalizado
     drawer_visible = False
@@ -48,6 +38,7 @@ def main(page: ft.Page):
         height=page.height,
         bgcolor="#FFFFFF",
         shadow=ft.BoxShadow(blur_radius=10, color="#00000030"),
+        animate=ft.Animation(400, ft.AnimationCurve.DECELERATE),
         content=ft.Column(
             controls=[
                 ft.Container(
@@ -59,57 +50,70 @@ def main(page: ft.Page):
                     ], spacing=4)
                 ),
                 ft.Divider(height=1),
-                ft.ListTile(
-                    leading=ft.Icon("notifications_active", color="#B71C1C"),
-                    title=ft.Text("Notificaciones", size=16),
-                    on_click=lambda _: ir_a_notificaciones_desde_drawer()
-                ),
-                ft.ListTile(
-                    leading=ft.Icon("home", color="#B71C1C"),
-                    title=ft.Text("Inicio", size=16),
-                    on_click=lambda _: ir_a_inicio_desde_drawer()
-                ),
-                ft.ListTile(
-                    leading=ft.Icon("groups", color="#B71C1C"),
-                    title=ft.Text("Plantel", size=16),
-                    on_click=lambda _: ir_a_plantel_desde_drawer()
-                ),
-                ft.ListTile(
-                    leading=ft.Icon("leaderboard", color="#B71C1C"),
-                    title=ft.Text("Tabla", size=16),
-                    on_click=lambda _: ir_a_tabla_desde_drawer()
-                ),
-                ft.ListTile(
-                    leading=ft.Icon("schedule", color="#B71C1C"),
-                    title=ft.Text("Fixture", size=16),
-                    on_click=lambda _: ir_a_fixture_desde_drawer()
+                ft.Row(
+                    controls=[
+                        ft.GestureDetector(
+                            on_tap=lambda _: navegar_a("notificaciones"),
+                            content=ft.Column([
+                                ft.Icon("notifications_active", color="#B71C1C", size=32),
+                                ft.Text("Notificaciones", size=10, color="#B71C1C")
+                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4)
+                        ),
+                        ft.GestureDetector(
+                            on_tap=lambda _: navegar_a("fecha"),
+                            content=ft.Column([
+                                ft.Icon("home", color="#B71C1C", size=32),
+                                ft.Text("Inicio", size=10, color="#B71C1C")
+                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4)
+                        ),
+                        ft.GestureDetector(
+                            on_tap=lambda _: navegar_a("plantel"),
+                            content=ft.Column([
+                                ft.Icon("groups", color="#B71C1C", size=32),
+                                ft.Text("Plantel", size=10, color="#B71C1C")
+                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4)
+                        ),
+                        ft.GestureDetector(
+                            on_tap=lambda _: navegar_a("tabla"),
+                            content=ft.Column([
+                                ft.Icon("leaderboard", color="#B71C1C", size=32),
+                                ft.Text("Tabla", size=10, color="#B71C1C")
+                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4)
+                        ),
+                        ft.GestureDetector(
+                            on_tap=lambda _: navegar_a("fixture"),
+                            content=ft.Column([
+                                ft.Icon("schedule", color="#B71C1C", size=32),
+                                ft.Text("Fixture", size=10, color="#B71C1C")
+                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4)
+                        ),
+                    ],
+                    wrap=True,
+                    spacing=10,
+                    run_spacing=10,
+                    alignment=ft.MainAxisAlignment.START
                 ),
             ],
             scroll="auto"
         )
     )
     
-    drawer_overlay = ft.Container(
-        width=page.width,
-        height=page.height,
-        left=0,
-        top=0,
-        bgcolor="#00000080",
-        visible=False,
-        on_click=lambda e: cerrar_drawer()
-    )
-    
     def abrir_drawer(e):
         nonlocal drawer_visible
         drawer_visible = True
-        drawer_overlay.visible = True
         drawer_container.left = 0
         page.update()
     
+    def toggle_drawer(e):
+        nonlocal drawer_visible
+        if drawer_visible:
+            cerrar_drawer()
+        else:
+            abrir_drawer(e)
+
     def cerrar_drawer():
         nonlocal drawer_visible
         drawer_visible = False
-        drawer_overlay.visible = False
         drawer_container.left = -280
         page.update()
 
@@ -291,52 +295,46 @@ def main(page: ft.Page):
                     controls=cards
                 ),
                 ft.Container(height=30),
-                ft.Row(
-                    alignment=ft.MainAxisAlignment.CENTER,
+                ft.Column(
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=15,
                     controls=[
                         ft.FilledButton(
                             "Plantel y Perfiles",
                             icon="groups",
-                            icon_color="white",
+                            width=300,
+                            height=50,
                             style=ft.ButtonStyle(
                                 bgcolor="#C62828",
                                 color="white",
-                                padding=20,
                                 shape=ft.RoundedRectangleBorder(radius=10)
                             ),
-                            on_click=lambda _: ir_a_plantel()
+                            on_click=lambda _: navegar_a("plantel")
                         ),
-                        ft.Container(width=20),
                         ft.FilledButton(
                             "Tabla de Posiciones",
                             icon="leaderboard",
-                            icon_color="#C62828",
+                            width=300,
+                            height=50,
                             style=ft.ButtonStyle(
                                 bgcolor="white",
                                 color="#C62828",
-                                padding=20,
                                 side=ft.BorderSide(width=1, color="#C62828"),
                                 shape=ft.RoundedRectangleBorder(radius=10)
                             ),
-                            on_click=lambda _: ir_a_tabla()
-                        )
-                    ]
-                ),
-                ft.Container(height=15),
-                ft.Row(
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    controls=[
+                            on_click=lambda _: navegar_a("tabla")
+                        ),
                         ft.FilledButton(
                             "Fixture",
                             icon="schedule",
-                            icon_color="white",
+                            width=300,
+                            height=50,
                             style=ft.ButtonStyle(
                                 bgcolor="#C62828",
                                 color="white",
-                                padding=20,
                                 shape=ft.RoundedRectangleBorder(radius=10)
                             ),
-                            on_click=lambda _: ir_a_fixture()
+                            on_click=lambda _: navegar_a("fixture")
                         )
                     ]
                 ),
@@ -361,57 +359,6 @@ def main(page: ft.Page):
                 ft.Container(height=20)
             ]
         )
-
-    def vista_notificaciones():
-        return ft.Column([
-            ft.Row(
-                controls=[
-                    ft.Icon("notifications_active", size=28, color="#B71C1C"),
-                    ft.Text("NOTIFICACIONES", size=20, weight="bold")
-                ],
-                spacing=10,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER
-            ),
-            ft.Container(height=20),
-            ft.Column(
-                spacing=12,
-                controls=[
-                    ft.Container(
-                        padding=15, bgcolor="#FFF9E6", border_radius=12,
-                        border=ft.Border.all(2, "#FFB74D"),
-                        content=ft.Row([
-                            ft.Icon("info", size=24, color="#FF6F00"),
-                            ft.Column([
-                                ft.Text("Recordatorio", size=13, weight="bold", color="#FF6F00"),
-                                ft.Text("Próximo partido vs Dinamo el 19/04 a las 11:45", size=13)
-                            ], spacing=2)
-                        ], spacing=12, vertical_alignment=ft.CrossAxisAlignment.START)
-                    ),
-                    ft.Container(
-                        padding=15, bgcolor="#E8F5E9", border_radius=12,
-                        border=ft.Border.all(2, "#66BB6A"),
-                        content=ft.Row([
-                            ft.Icon("celebration", size=24, color="#2E7D32"),
-                            ft.Column([
-                                ft.Text("¡Bien hecho!", size=13, weight="bold", color="#2E7D32"),
-                                ft.Text("Excelente performance en el último partido", size=13)
-                            ], spacing=2)
-                        ], spacing=12, vertical_alignment=ft.CrossAxisAlignment.START)
-                    ),
-                    ft.Container(
-                        padding=15, bgcolor="#FFEBEE", border_radius=12,
-                        border=ft.Border.all(2, "#EF5350"),
-                        content=ft.Row([
-                            ft.Icon("warning", size=24, color="#C62828"),
-                            ft.Column([
-                                ft.Text("Importante", size=13, weight="bold", color="#C62828"),
-                                ft.Text("Llevar camiseta alternativa blanca para el próximo partido", size=13)
-                            ], spacing=2)
-                        ], spacing=12, vertical_alignment=ft.CrossAxisAlignment.START)
-                    )
-                ]
-            )
-        ], expand=True, scroll="always")
 
     # --- VISTA: FIXTURE ---
     def vista_fixture():
@@ -491,7 +438,7 @@ def main(page: ft.Page):
                     bgcolor="#E0E0E0",
                     width=44,
                     height=44,
-                    on_click=lambda _: volver_a_inicio()
+                    on_click=lambda _: navegar_a("fecha")
                 ),
                 ft.Text("FIXTURE", size=22, weight="bold")
             ],
@@ -557,7 +504,7 @@ def main(page: ft.Page):
                     bgcolor="#E0E0E0",
                     width=44,
                     height=44,
-                    on_click=lambda _: volver_a_inicio()
+                    on_click=lambda _: navegar_a("fecha")
                 ),
                 ft.Text("PLANTEL Y PERFILES", size=22, weight="bold")
             ],
@@ -646,7 +593,7 @@ def main(page: ft.Page):
                     bgcolor="#E0E0E0",
                     width=44,
                     height=44,
-                    on_click=lambda _: volver_a_inicio()
+                    on_click=lambda _: navegar_a("fecha")
                 ),
                 ft.Text("TABLA DE POSICIONES", size=22, weight="bold")
             ],
@@ -672,110 +619,16 @@ def main(page: ft.Page):
     current_view = "fecha"
 
     def on_resize(e):
-        if current_view == "fecha":
-            contenedor_principal.content = vista_partidos()
-        elif current_view == "plantel":
-            contenedor_principal.content = vista_plantel()
-        elif current_view == "tabla":
-            contenedor_principal.content = vista_tabla_posiciones()
-        elif current_view == "fixture":
-            contenedor_principal.content = vista_fixture()
-        elif current_view == "notificaciones":
-            contenedor_principal.content = vista_notificaciones()
-        page.update()
+        navegar_a(current_view)
 
     page.on_resize = on_resize
-
-    def cambio_tab(e):
-        nonlocal current_view
-        idx = e.control.selected_index
-        if idx == 0:
-            current_view = "fecha"
-            contenedor_principal.content = vista_partidos()
-        else:
-            current_view = "plantel"
-            contenedor_principal.content = vista_plantel()
-        page.update()
-
-    def ir_a_plantel():
-        nonlocal current_view
-        current_view = "plantel"
-        contenedor_principal.content = vista_plantel()
-        page.update()
-
-    def ir_a_tabla():
-        nonlocal current_view
-        current_view = "tabla"
-        contenedor_principal.content = vista_tabla_posiciones()
-        page.update()
-
-    def ir_a_fixture():
-        nonlocal current_view
-        current_view = "fixture"
-        contenedor_principal.content = vista_fixture()
-        page.update()
-
-    def ir_a_notificaciones():
-        nonlocal current_view
-        current_view = "notificaciones"
-        contenedor_principal.content = vista_notificaciones()
-        page.update()
-
-    def volver_a_inicio():
-        nonlocal current_view
-        current_view = "fecha"
-        contenedor_principal.content = vista_partidos()
-        page.update()
-
-    # --- DRAWER (Menú Lateral) ---
-    def ir_a_inicio_desde_drawer():
-        nonlocal current_view
-        current_view = "fecha"
-        page.drawer.open = False
-        contenedor_principal.content = vista_partidos()
-        page.update()
-
-    def ir_a_plantel_desde_drawer():
-        nonlocal current_view
-        current_view = "plantel"
-        page.drawer.open = False
-        contenedor_principal.content = vista_plantel()
-        page.update()
-
-    def ir_a_tabla_desde_drawer():
-        nonlocal current_view
-        current_view = "tabla"
-        page.drawer.open = False
-        contenedor_principal.content = vista_tabla_posiciones()
-        page.update()
-
-    def ir_a_notificaciones_desde_drawer():
-        nonlocal current_view
-        current_view = "notificaciones"
-        page.drawer.open = False
-        contenedor_principal.content = vista_notificaciones()
-        page.update()
-
-    def ir_a_fixture_desde_drawer():
-        nonlocal current_view
-        current_view = "fixture"
-        page.drawer.open = False
-        contenedor_principal.content = vista_fixture()
-        page.update()
-
-    def abrir_drawer(e):
-        if hasattr(page, 'drawer') and page.drawer:
-            page.drawer.open = True
-            page.update()
-        else:
-            mostrar_snackbar("Drawer no configurado")
 
     page.appbar = ft.AppBar(
         leading=ft.IconButton(
             icon=ft.Icons.MENU,
             icon_color="white",
             icon_size=28,
-            on_click=abrir_drawer
+            on_click=toggle_drawer
         ),
         title=ft.Row(
             controls=[
@@ -806,7 +659,9 @@ def main(page: ft.Page):
         alignment=ft.Alignment.CENTER
     )
 
-    page.add(drawer_overlay, drawer_container, contenedor_principal, footer)
+    # Agregamos el drawer al overlay para posicionamiento
+    page.overlay.append(drawer_container)
+    page.add(contenedor_principal, footer)
 
 if __name__ == "__main__":
     ft.run(main)
