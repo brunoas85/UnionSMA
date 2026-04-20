@@ -10,8 +10,34 @@ def main(page: ft.Page):
     page.window_height = 800
     page.window_resizable = True
     page.bgcolor = "white"
-    page.padding = 10
+    page.padding = 0
     page.assets_dir = "assets"
+
+    def mostrar_snackbar(mensaje: str):
+        page.snack_bar = ft.SnackBar(ft.Text(mensaje))
+        page.snack_bar.open = True
+        page.update()
+
+    # Configuración del Navigation Rail (sidebar como YouTube)
+    nav_rail = ft.NavigationRail(
+        selected_index=0,
+        label_type=ft.NavigationRailLabelType.ALL,
+        destinations=[
+            ft.NavigationRailDestination(icon=ft.Icons.HOME, label="Inicio"),
+            ft.NavigationRailDestination(icon=ft.Icons.GROUPS, label="Plantel"),
+            ft.NavigationRailDestination(icon=ft.Icons.LEADERBOARD, label="Tabla"),
+            ft.NavigationRailDestination(icon=ft.Icons.SCHEDULE, label="Fixture"),
+            ft.NavigationRailDestination(icon=ft.Icons.NOTIFICATIONS_ACTIVE, label="Notificaciones"),
+        ],
+        on_change=lambda e: navegar_a(["fecha", "plantel", "tabla", "fixture", "notificaciones"][e.control.selected_index]),
+        width=250,
+        extended=True,
+        bgcolor="#F5F5F5",
+    )
+    
+    def toggle_nav_rail():
+        nav_rail.visible = not nav_rail.visible
+        page.update()
 
     def navegar_a(vista_nombre):
         nonlocal current_view
@@ -25,102 +51,7 @@ def main(page: ft.Page):
         }
         if vista_nombre in vistas:
             contenedor_principal.content = vistas[vista_nombre]()
-            cerrar_drawer()
             page.update()
-
-    # Crear drawer personalizado
-    drawer_visible = False
-    
-    drawer_container = ft.Container(
-        width=280,
-        left=-280,  # Inicialmente oculto
-        top=0,
-        height=page.height,
-        bgcolor="#FFFFFF",
-        shadow=ft.BoxShadow(blur_radius=10, color="#00000030"),
-        animate=ft.Animation(400, ft.AnimationCurve.DECELERATE),
-        content=ft.Column(
-            controls=[
-                ft.Container(
-                    padding=20,
-                    bgcolor="#B71C1C",
-                    content=ft.Column([
-                        ft.Text("UNIÓN SENIOR", size=20, weight="bold", color="white"),
-                        ft.Text("San Martín de los Andes", size=12, color="white")
-                    ], spacing=4)
-                ),
-                ft.Divider(height=1),
-                ft.Row(
-                    controls=[
-                        ft.GestureDetector(
-                            on_tap=lambda _: navegar_a("notificaciones"),
-                            content=ft.Column([
-                                ft.Icon("notifications_active", color="#B71C1C", size=32),
-                                ft.Text("Notificaciones", size=10, color="#B71C1C")
-                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4)
-                        ),
-                        ft.GestureDetector(
-                            on_tap=lambda _: navegar_a("fecha"),
-                            content=ft.Column([
-                                ft.Icon("home", color="#B71C1C", size=32),
-                                ft.Text("Inicio", size=10, color="#B71C1C")
-                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4)
-                        ),
-                        ft.GestureDetector(
-                            on_tap=lambda _: navegar_a("plantel"),
-                            content=ft.Column([
-                                ft.Icon("groups", color="#B71C1C", size=32),
-                                ft.Text("Plantel", size=10, color="#B71C1C")
-                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4)
-                        ),
-                        ft.GestureDetector(
-                            on_tap=lambda _: navegar_a("tabla"),
-                            content=ft.Column([
-                                ft.Icon("leaderboard", color="#B71C1C", size=32),
-                                ft.Text("Tabla", size=10, color="#B71C1C")
-                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4)
-                        ),
-                        ft.GestureDetector(
-                            on_tap=lambda _: navegar_a("fixture"),
-                            content=ft.Column([
-                                ft.Icon("schedule", color="#B71C1C", size=32),
-                                ft.Text("Fixture", size=10, color="#B71C1C")
-                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4)
-                        ),
-                    ],
-                    wrap=True,
-                    spacing=10,
-                    run_spacing=10,
-                    alignment=ft.MainAxisAlignment.START
-                ),
-            ],
-            scroll="auto"
-        )
-    )
-    
-    def abrir_drawer(e):
-        nonlocal drawer_visible
-        drawer_visible = True
-        drawer_container.left = 0
-        page.update()
-    
-    def toggle_drawer(e):
-        nonlocal drawer_visible
-        if drawer_visible:
-            cerrar_drawer()
-        else:
-            abrir_drawer(e)
-
-    def cerrar_drawer():
-        nonlocal drawer_visible
-        drawer_visible = False
-        drawer_container.left = -280
-        page.update()
-
-    def mostrar_snackbar(mensaje: str):
-        page.snack_bar = ft.SnackBar(ft.Text(mensaje))
-        page.snack_bar.open = True
-        page.update()
 
     plantel = [
         {"nombre": "Silva, Facundo Lujan", "posicion": "Delantero", "goles": 5, "amarillas": 1},
@@ -623,29 +554,35 @@ def main(page: ft.Page):
 
     page.on_resize = on_resize
 
-    page.appbar = ft.AppBar(
-        leading=ft.IconButton(
-            icon=ft.Icons.MENU,
-            icon_color="white",
-            icon_size=28,
-            on_click=toggle_drawer
-        ),
-        title=ft.Row(
-            controls=[
-                ft.Column([
-                    ft.Text("UNIÓN", weight="bold", color="white", size=36),
-                    ft.Text("San Martín de los Andes", color="white", size=16)
-                ], spacing=2),
-                ft.Image(src="UnionEscudo.png", height=72, fit="contain")
-            ],
-            alignment=ft.MainAxisAlignment.START,
-            spacing=12,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            expand=True
-        ),
-        center_title=False,
-        toolbar_height=100,
+    page.appbar = None
+
+    # AppBar personalizado
+    custom_appbar = ft.Container(
+        height=100,
         bgcolor="#B71C1C",
+        padding=0,
+        margin=0,
+        content=ft.Row([
+            ft.IconButton(
+                icon=ft.Icons.MENU,
+                icon_color="white",
+                icon_size=28,
+                on_click=lambda _: toggle_nav_rail()
+            ),
+            ft.Row(
+                controls=[
+                    ft.Column([
+                        ft.Text("UNIÓN", weight="bold", color="white", size=36),
+                        ft.Text("San Martín de los Andes", color="white", size=16)
+                    ], spacing=2),
+                    ft.Image(src="UnionEscudo.png", height=72, fit="contain")
+                ],
+                alignment=ft.MainAxisAlignment.START,
+                spacing=12,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                expand=True
+            )
+        ], vertical_alignment=ft.CrossAxisAlignment.CENTER, spacing=10)
     )
 
     footer = ft.Container(
@@ -659,9 +596,32 @@ def main(page: ft.Page):
         alignment=ft.Alignment.CENTER
     )
 
-    # Agregamos el drawer al overlay para posicionamiento
-    page.overlay.append(drawer_container)
-    page.add(contenedor_principal, footer)
+    # Layout con NavigationRail
+    # Contenedor del navbar y sidebar
+    content_row = ft.Row([
+        ft.Container(
+            content=nav_rail,
+            expand=True,
+            padding=0,
+            margin=0,
+            height=700
+        ),
+        ft.VerticalDivider(width=1),
+        ft.Container(
+            content=contenedor_principal,
+            expand=True,
+            padding=10,
+            margin=0
+        )
+    ], expand=True, spacing=0, margin=0)
+    
+    main_layout = ft.Column([
+        custom_appbar,
+        content_row,
+        footer
+    ], expand=True, spacing=0, margin=0)
+    
+    page.add(main_layout)
 
 if __name__ == "__main__":
     ft.run(main)
