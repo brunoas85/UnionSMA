@@ -28,16 +28,60 @@ def main(page: ft.Page):
             ft.NavigationRailDestination(icon=ft.Icons.LEADERBOARD, label="Tabla"),
             ft.NavigationRailDestination(icon=ft.Icons.SCHEDULE, label="Fixture"),
             ft.NavigationRailDestination(icon=ft.Icons.NOTIFICATIONS_ACTIVE, label="Notificaciones"),
+            ft.NavigationRailDestination(icon=ft.Icons.SPORTS_BAR, label="Tercer Tiempo"),
         ],
-        on_change=lambda e: navegar_a(["fecha", "plantel", "tabla", "fixture", "notificaciones"][e.control.selected_index]),
-        width=250,
+        on_change=lambda e: navegar_a(["fecha", "plantel", "tabla", "fixture", "notificaciones", "tercer_tiempo"][e.control.selected_index]),
+        width=160,
         extended=True,
         bgcolor="#F5F5F5",
+        visible=False,
     )
     
     def toggle_nav_rail():
         nav_rail.visible = not nav_rail.visible
         page.update()
+
+    def vista_tercer_tiempo():
+        return ft.Column([
+            ft.Container(
+                padding=15,
+                content=ft.Row(
+                    controls=[
+                        ft.FilledButton(
+                            "",
+                            icon="home",
+                            icon_color="#1976D2",
+                            bgcolor="#E0E0E0",
+                            width=44,
+                            height=44,
+                            on_click=lambda _: navegar_a("fecha")
+                        ),
+                        ft.Text("TERCER TIEMPO", size=22, weight="bold")
+                    ],
+                    alignment="start",
+                    vertical_alignment="center",
+                    spacing=10
+                )
+            ),
+            ft.Container(height=20),
+            ft.Container(
+                padding=15, bgcolor="#FFEBEE", border_radius=10,
+                content=ft.Column([
+                    ft.Text("Comparte fotos del post-partido, el asado y la camaradería del club", size=14),
+                    ft.FilledButton(
+                        "Subir Foto",
+                        icon="photo_camera",
+                        icon_color="white",
+                        style=ft.ButtonStyle(
+                            bgcolor="#C62828",
+                            color="white"
+                        ),
+                        on_click=lambda _: mostrar_snackbar("Función de subir foto próximamente disponible")
+                    )
+                ], spacing=10)
+            ),
+            ft.Container(height=20)
+        ], expand=True, scroll="always")
 
     def navegar_a(vista_nombre):
         nonlocal current_view
@@ -47,7 +91,8 @@ def main(page: ft.Page):
             "plantel": vista_plantel,
             "tabla": vista_tabla_posiciones,
             "fixture": vista_fixture,
-            "notificaciones": vista_notificaciones
+            "notificaciones": vista_notificaciones,
+            "tercer_tiempo": vista_tercer_tiempo
         }
         if vista_nombre in vistas:
             contenedor_principal.content = vistas[vista_nombre]()
@@ -225,69 +270,7 @@ def main(page: ft.Page):
                     alignment=ft.MainAxisAlignment.CENTER,
                     controls=cards
                 ),
-                ft.Container(height=30),
-                ft.Column(
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    spacing=15,
-                    controls=[
-                        ft.FilledButton(
-                            "Plantel y Perfiles",
-                            icon="groups",
-                            width=300,
-                            height=50,
-                            style=ft.ButtonStyle(
-                                bgcolor="#C62828",
-                                color="white",
-                                shape=ft.RoundedRectangleBorder(radius=10)
-                            ),
-                            on_click=lambda _: navegar_a("plantel")
-                        ),
-                        ft.FilledButton(
-                            "Tabla de Posiciones",
-                            icon="leaderboard",
-                            width=300,
-                            height=50,
-                            style=ft.ButtonStyle(
-                                bgcolor="white",
-                                color="#C62828",
-                                side=ft.BorderSide(width=1, color="#C62828"),
-                                shape=ft.RoundedRectangleBorder(radius=10)
-                            ),
-                            on_click=lambda _: navegar_a("tabla")
-                        ),
-                        ft.FilledButton(
-                            "Fixture",
-                            icon="schedule",
-                            width=300,
-                            height=50,
-                            style=ft.ButtonStyle(
-                                bgcolor="#C62828",
-                                color="white",
-                                shape=ft.RoundedRectangleBorder(radius=10)
-                            ),
-                            on_click=lambda _: navegar_a("fixture")
-                        )
-                    ]
-                ),
-                ft.Container(height=30),
-                ft.Text("TERCER TIEMPO", size=18, weight="bold"),
-                ft.Container(
-                    padding=15, bgcolor="#FFEBEE", border_radius=10,
-                    content=ft.Column([
-                        ft.Text("Comparte fotos del post-partido, el asado y la camaradería del club", size=14),
-                        ft.FilledButton(
-                            "Subir Foto",
-                            icon="photo_camera",
-                            icon_color="white",
-                            style=ft.ButtonStyle(
-                                bgcolor="#C62828",
-                                color="white"
-                            ),
-                            on_click=lambda _: mostrar_snackbar("Función de subir foto próximamente disponible")
-                        )
-                    ], spacing=10)
-                ),
-                ft.Container(height=20)
+                ft.Container(height=30)
             ]
         )
 
@@ -569,20 +552,10 @@ def main(page: ft.Page):
                 icon_size=28,
                 on_click=lambda _: toggle_nav_rail()
             ),
-            ft.Row(
-                controls=[
-                    ft.Column([
-                        ft.Text("UNIÓN", weight="bold", color="white", size=36),
-                        ft.Text("San Martín de los Andes", color="white", size=16)
-                    ], spacing=2),
-                    ft.Image(src="UnionEscudo.png", height=72, fit="contain")
-                ],
-                alignment=ft.MainAxisAlignment.START,
-                spacing=12,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                expand=True
-            )
-        ], vertical_alignment=ft.CrossAxisAlignment.CENTER, spacing=10)
+            ft.Text("UNIÓN", weight="bold", color="white", size=36),
+            ft.Image(src="UnionEscudo.png", height=102, fit="contain"),
+            ft.Text("San Martín de los Andes", color="white", size=16),
+        ], vertical_alignment=ft.CrossAxisAlignment.CENTER, spacing=15)
     )
 
     footer = ft.Container(
@@ -590,23 +563,20 @@ def main(page: ft.Page):
         bgcolor="#424242",
         border_radius=0,
         content=ft.Column([
-            ft.Text("Unión San Martín de los Andes - Unidos por la camiseta", size=14, weight="bold", color="white"),
-            ft.Text("Liga de Veteranos", size=12, color="white")
+            ft.Text("UNIÓN - San Martín de los Andes", size=14, weight="bold", color="white"),
+            ft.Text("Liga de Veteranos de fútbol", size=12, color="white")
         ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
         alignment=ft.Alignment.CENTER
     )
 
-    # Layout con NavigationRail
-    # Contenedor del navbar y sidebar
+    # Layout responsive con 20px de separación
     content_row = ft.Row([
         ft.Container(
             content=nav_rail,
-            expand=True,
             padding=0,
-            margin=0,
-            height=700
+            margin=ft.Margin(left=20, top=0, right=0, bottom=0),
+            height=page.window_height - 100,
         ),
-        ft.VerticalDivider(width=1),
         ft.Container(
             content=contenedor_principal,
             expand=True,
