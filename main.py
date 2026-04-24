@@ -1,7 +1,6 @@
 import flet as ft
 import csv
 from datetime import datetime
-from notificaciones import vista_notificaciones
 
 def main(page: ft.Page):
     page.title = "Unión Senior SMA"
@@ -18,85 +17,23 @@ def main(page: ft.Page):
         page.snack_bar.open = True
         page.update()
 
-    # Configuración del Navigation Rail (sidebar como YouTube)
-    nav_rail = ft.NavigationRail(
+    # Pestañas del dashboard
+    tabs_menu = ft.Tabs(
+        length=6,
         selected_index=0,
-        label_type=ft.NavigationRailLabelType.ALL,
-        destinations=[
-            ft.NavigationRailDestination(icon=ft.Icons.HOME, label="Inicio"),
-            ft.NavigationRailDestination(icon=ft.Icons.GROUPS, label="Plantel"),
-            ft.NavigationRailDestination(icon=ft.Icons.LEADERBOARD, label="Tabla"),
-            ft.NavigationRailDestination(icon=ft.Icons.SCHEDULE, label="Fixture"),
-            ft.NavigationRailDestination(icon=ft.Icons.NOTIFICATIONS_ACTIVE, label="Notificaciones"),
-            ft.NavigationRailDestination(icon=ft.Icons.SPORTS_BAR, label="Tercer Tiempo"),
-        ],
         on_change=lambda e: navegar_a(["fecha", "plantel", "tabla", "fixture", "notificaciones", "tercer_tiempo"][e.control.selected_index]),
-        width=160,
-        extended=True,
-        bgcolor="#F5F5F5",
-        visible=False,
+        content=ft.TabBar(
+            scrollable=True,
+            tabs=[
+                ft.Tab(icon=ft.Icons.HOME, label="Inicio"),
+                ft.Tab(icon=ft.Icons.GROUPS, label="Plantel"),
+                ft.Tab(icon=ft.Icons.LEADERBOARD, label="Tabla"),
+                ft.Tab(icon=ft.Icons.SCHEDULE, label="Fixture"),
+                ft.Tab(icon=ft.Icons.NOTIFICATIONS_ACTIVE, label="Notificaciones"),
+                ft.Tab(icon=ft.Icons.SPORTS_BAR, label="Tercer Tiempo"),
+            ]
+        )
     )
-    
-    def toggle_nav_rail():
-        nav_rail.visible = not nav_rail.visible
-        page.update()
-
-    def vista_tercer_tiempo():
-        return ft.Column([
-            ft.Container(
-                padding=15,
-                content=ft.Row(
-                    controls=[
-                        ft.FilledButton(
-                            "",
-                            icon="home",
-                            icon_color="#1976D2",
-                            bgcolor="#E0E0E0",
-                            width=44,
-                            height=44,
-                            on_click=lambda _: navegar_a("fecha")
-                        ),
-                        ft.Text("TERCER TIEMPO", size=22, weight="bold")
-                    ],
-                    alignment="start",
-                    vertical_alignment="center",
-                    spacing=10
-                )
-            ),
-            ft.Container(height=20),
-            ft.Container(
-                padding=15, bgcolor="#FFEBEE", border_radius=10,
-                content=ft.Column([
-                    ft.Text("Comparte fotos del post-partido, el asado y la camaradería del club", size=14),
-                    ft.FilledButton(
-                        "Subir Foto",
-                        icon="photo_camera",
-                        icon_color="white",
-                        style=ft.ButtonStyle(
-                            bgcolor="#C62828",
-                            color="white"
-                        ),
-                        on_click=lambda _: mostrar_snackbar("Función de subir foto próximamente disponible")
-                    )
-                ], spacing=10)
-            ),
-            ft.Container(height=20)
-        ], expand=True, scroll="always")
-
-    def navegar_a(vista_nombre):
-        nonlocal current_view
-        current_view = vista_nombre
-        vistas = {
-            "fecha": vista_partidos,
-            "plantel": vista_plantel,
-            "tabla": vista_tabla_posiciones,
-            "fixture": vista_fixture,
-            "notificaciones": vista_notificaciones,
-            "tercer_tiempo": vista_tercer_tiempo
-        }
-        if vista_nombre in vistas:
-            contenedor_principal.content = vistas[vista_nombre]()
-            page.update()
 
     plantel = [
         {"nombre": "Silva, Facundo Lujan", "posicion": "Delantero", "goles": 5, "amarillas": 1},
@@ -122,7 +59,6 @@ def main(page: ft.Page):
         {"nombre": "Oliva, Horacio Sebastian", "posicion": "Arquero", "goles": 0, "amarillas": 0}
     ]
 
-    # Cargar partidos desde archivo CSV
     partidos_lista = []
     try:
         with open("partidos.csv", "r", encoding="utf-8") as f:
@@ -139,7 +75,6 @@ def main(page: ft.Page):
     except FileNotFoundError:
         partidos_lista = []
 
-    # Función para obtener el próximo partido según la fecha actual
     def obtener_proximo_partido():
         hoy = datetime.now().date()
         for partido in partidos_lista:
@@ -152,7 +87,6 @@ def main(page: ft.Page):
                     "cancha": partido["cancha"],
                     "fecha_formateada": fecha_partido.strftime("%d/%m/%Y")
                 }
-        # Si no hay más partidos, retornar el último o uno por defecto
         if partidos_lista:
             ultimo = partidos_lista[-1]
             fecha_ultimo = datetime.strptime(ultimo["fecha"], "%Y-%m-%d").date()
@@ -178,7 +112,6 @@ def main(page: ft.Page):
         "Zona B": ["Chapelco", "Embajadores", "Patagonia", "Lacar", "El Barrio", "Old Boys", "Belgrano", "Dinosaurios"]
     }
 
-    # Datos ficticios de tabla de posiciones (para demo)
     tabla_posiciones = [
         {"equipo": "Union", "pj": 8, "pg": 6, "pe": 1, "pp": 1, "gf": 18, "gc": 8, "pts": 19},
         {"equipo": "Chapelco", "pj": 8, "pg": 5, "pe": 2, "pp": 1, "gf": 16, "gc": 9, "pts": 17},
@@ -198,10 +131,26 @@ def main(page: ft.Page):
         {"equipo": "Dinosaurios", "pj": 8, "pg": 0, "pe": 1, "pp": 7, "gf": 2, "gc": 23, "pts": 1}
     ]
 
-    # Goleadores ordenados por goles
     goleadores = sorted([j for j in plantel if j["goles"] > 0], key=lambda x: x["goles"], reverse=True)
 
-    # --- VISTA: FECHA ---
+    current_view = "fecha"
+
+    def navegar_a(vista_nombre):
+        nonlocal current_view
+        current_view = vista_nombre
+        vistas = {
+            "fecha": vista_partidos,
+            "plantel": vista_plantel,
+            "tabla": vista_tabla_posiciones,
+            "fixture": vista_fixture,
+            "notificaciones": vista_notificaciones,
+            "tercer_tiempo": vista_tercer_tiempo
+        }
+        if vista_nombre in vistas:
+            contenedor_principal.content = vistas[vista_nombre]()
+            page.update()
+
+    # --- VISTA: INICIO ---
     def vista_partidos():
         cards = [
             ft.Container(
@@ -218,27 +167,14 @@ def main(page: ft.Page):
             )
         ]
 
-        equipos_controls = []
-        for zona, equipos in equipos_torneo.items():
-            equipos_controls.append(
-                ft.Container(
-                    padding=15, bgcolor="#E3F2FD", border_radius=10, width=260,
-                    content=ft.Column([
-                        ft.Text(zona, size=16, weight="bold"),
-                        ft.Divider(thickness=1, color="#1976D2"),
-                        *[ft.Text(f"• {equipo}", size=14) for equipo in equipos]
-                    ], spacing=4)
-                )
-            )
-
-        return ft.Column(
-            scroll="always",
-            expand=True,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            controls=[
+        return ft.Container(
+            padding=ft.Padding(left=15, right=15, top=0, bottom=0),
+            content=ft.Column([
+                ft.Container(height=15),
+                ft.Text("INICIO", size=22, weight="bold"),
                 ft.Container(height=20),
                 ft.Container(
-                    padding=18, bgcolor="#FFEBEE", border_radius=16, width=340,
+                    padding=18, bgcolor="#FFEBEE", border_radius=16,
                     content=ft.Column([
                         ft.Row([
                             ft.Column([
@@ -247,10 +183,9 @@ def main(page: ft.Page):
                             ]),
                             ft.Container(
                                 width=50, height=50, border_radius=25, bgcolor="#B71C1C",
-                                content=ft.Row([
-                                    ft.Text("VS", color="white", size=14)], alignment=ft.MainAxisAlignment.CENTER,
-                                    vertical_alignment=ft.CrossAxisAlignment.CENTER
-                                )
+                                content=ft.Row([ft.Text("VS", color="white", size=14)],
+                                    alignment=ft.MainAxisAlignment.CENTER,
+                                    vertical_alignment=ft.CrossAxisAlignment.CENTER)
                             )
                         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                         ft.Divider(thickness=1, color="#D81B60"),
@@ -271,34 +206,30 @@ def main(page: ft.Page):
                     controls=cards
                 ),
                 ft.Container(height=30)
-            ]
+            ], expand=True, scroll="always")
         )
 
     # --- VISTA: FIXTURE ---
     def vista_fixture():
         partidos_controls = []
         hoy = datetime.now().date()
-        
+
         for i, partido in enumerate(partidos_lista):
             fecha_obj = datetime.strptime(partido["fecha"], "%Y-%m-%d").date()
             fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
-            dia_semana = fecha_obj.strftime("%A").upper()
-            
-            # Determinar si el partido ya se jugó
+
             ya_se_jugo = fecha_obj < hoy
             tiene_resultado = partido.get("resultado", "").strip() != ""
-            
-            # Color según si ya se jugó
+
             if ya_se_jugo and tiene_resultado:
-                bgcolor = "#C8E6C9"  # Verde claro para partidos jugados
-                color_texto = "#1B5E20"  # Verde oscuro
+                bgcolor = "#C8E6C9"
+                color_texto = "#1B5E20"
                 color_rival = "#1B5E20"
             else:
-                bgcolor = "#FFF3E0"  # Naranja claro para próximos
-                color_texto = "#B71C1C"  # Rojo para próximos
+                bgcolor = "#FFF3E0"
+                color_texto = "#B71C1C"
                 color_rival = "#B71C1C"
-            
-            # Construir el contenido de la card
+
             card_controls = [
                 ft.Row([
                     ft.Column([
@@ -309,30 +240,20 @@ def main(page: ft.Page):
                 ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                 ft.Divider(thickness=1, color="#E0E0E0"),
             ]
-            
-            # Agregar el resultado si el partido ya se jugó
+
             if ya_se_jugo and tiene_resultado:
-                resultado = partido["resultado"]
-                card_controls.append(
-                    ft.Text(f"vs {partido['rival']}", size=16, weight="bold", color=color_rival)
-                )
+                card_controls.append(ft.Text(f"vs {partido['rival']}", size=16, weight="bold", color=color_rival))
                 card_controls.append(
                     ft.Container(
-                        padding=10,
-                        bgcolor="white",
-                        border_radius=8,
-                        content=ft.Text(f"Resultado: {resultado}", size=14, weight="bold", color=color_rival)
+                        padding=10, bgcolor="white", border_radius=8,
+                        content=ft.Text(f"Resultado: {partido['resultado']}", size=14, weight="bold", color=color_rival)
                     )
                 )
             else:
-                card_controls.append(
-                    ft.Text(f"vs {partido['rival']}", size=16, weight="bold", color=color_rival)
-                )
-            
-            card_controls.append(
-                ft.Text(f"Cancha: {partido['cancha']}", size=12, color="grey")
-            )
-            
+                card_controls.append(ft.Text(f"vs {partido['rival']}", size=16, weight="bold", color=color_rival))
+
+            card_controls.append(ft.Text(f"Cancha: {partido['cancha']}", size=12, color="grey"))
+
             partidos_controls.append(
                 ft.Container(
                     padding=12,
@@ -343,42 +264,23 @@ def main(page: ft.Page):
                 )
             )
 
-        cabecera = ft.Row(
-            controls=[
-                ft.FilledButton(
-                    "",
-                    icon="home",
-                    icon_color="#1976D2",
-                    bgcolor="#E0E0E0",
-                    width=44,
-                    height=44,
-                    on_click=lambda _: navegar_a("fecha")
-                ),
-                ft.Text("FIXTURE", size=22, weight="bold")
-            ],
-            alignment="start",
-            vertical_alignment="center",
-            spacing=10
+        return ft.Container(
+            padding=ft.Padding(left=15, right=15, top=0, bottom=0),
+            content=ft.Column([
+                ft.Container(height=15),
+                ft.Text("FIXTURE", size=22, weight="bold"),
+                ft.Container(height=10),
+                ft.Column(spacing=10, scroll="always", expand=True, controls=partidos_controls),
+                ft.Container(height=20)
+            ], expand=True)
         )
-
-        return ft.Column([
-            ft.Container(padding=15, content=cabecera),
-            ft.Container(height=10),
-            ft.Column(
-                spacing=10,
-                scroll="always",
-                expand=True,
-                controls=partidos_controls
-            ),
-            ft.Container(height=20)
-        ], expand=True)
 
     # --- VISTA: PLANTEL ---
     def vista_plantel():
         lista = ft.ListView(expand=True, spacing=10, padding=20)
         for jugador in plantel:
             stats = ft.Container(
-                width=100, # Esto evita que aplaste al texto de la izquierda
+                width=100,
                 padding=6,
                 bgcolor="white",
                 border_radius=8,
@@ -394,14 +296,10 @@ def main(page: ft.Page):
                     ]
                 )
             )
-            
             lista.controls.append(
                 ft.Container(
                     content=ft.ListTile(
-                        leading=ft.CircleAvatar(
-                            bgcolor="#D32F2F",
-                            content=ft.Icon("person", color="white")
-                        ), 
+                        leading=ft.CircleAvatar(bgcolor="#D32F2F", content=ft.Icon("person", color="white")),
                         title=ft.Text(jugador["nombre"], weight="bold"),
                         subtitle=ft.Text(jugador["posicion"], color="grey"),
                         trailing=stats
@@ -409,27 +307,14 @@ def main(page: ft.Page):
                     bgcolor="white", border_radius=10
                 )
             )
-        cabecera = ft.Row(
-            controls=[
-                ft.FilledButton(
-                    "",
-                    icon="home",
-                    icon_color="#1976D2",
-                    bgcolor="#E0E0E0",
-                    width=44,
-                    height=44,
-                    on_click=lambda _: navegar_a("fecha")
-                ),
-                ft.Text("PLANTEL Y PERFILES", size=22, weight="bold")
-            ],
-            alignment="start",
-            vertical_alignment="center",
-            spacing=10
+        return ft.Container(
+            padding=ft.Padding(left=15, right=15, top=0, bottom=0),
+            content=ft.Column([
+                ft.Container(height=15),
+                ft.Text("PLANTEL Y PERFILES", size=22, weight="bold"),
+                lista
+            ], expand=True)
         )
-        return ft.Column([
-            ft.Container(padding=15, content=cabecera),
-            lista
-        ], expand=True)
 
     # --- VISTA: TABLA DE POSICIONES ---
     def vista_tabla_posiciones():
@@ -465,19 +350,11 @@ def main(page: ft.Page):
                 data_row_min_height=35,
                 width=900,
             )
-
             return ft.Container(
-                content=ft.Row(
-                    scroll="auto",
-                    wrap=False,
-                    controls=[tabla]
-                ),
-                padding=5,
-                bgcolor="white",
-                border_radius=10
+                content=ft.Row(scroll="auto", wrap=False, controls=[tabla]),
+                padding=5, bgcolor="white", border_radius=10
             )
 
-        # Goleadores
         goleadores_lista = ft.Column(
             spacing=5,
             controls=[
@@ -492,68 +369,123 @@ def main(page: ft.Page):
             ]
         )
 
-        # Mención al goleador de turno
         goleador_turno = ft.Container(
             padding=15, bgcolor="#FFEBEE", border_radius=10,
-            content=ft.Text("GOLEADOR DE LA FECHA: Salazar, Bruno con 5 goles", size=16, weight="bold", color="#D32F2F")
+            content=ft.Text("GOLEADOR DE LA FECHA: Silva, Facundo con 5 goles", size=16, weight="bold", color="#D32F2F")
         )
 
-        cabecera = ft.Row(
-            controls=[
-                ft.FilledButton(
-                    "",
-                    icon="home",
-                    icon_color="#1976D2",
-                    bgcolor="#E0E0E0",
-                    width=44,
-                    height=44,
-                    on_click=lambda _: navegar_a("fecha")
+        return ft.Container(
+            padding=ft.Padding(left=15, right=15, top=0, bottom=0),
+            content=ft.Column([
+                ft.Container(height=15),
+                ft.Text("TABLA DE POSICIONES", size=22, weight="bold"),
+                ft.Container(height=20),
+                ft.Text("TABLA GENERAL", size=18, weight="bold"),
+                tabla_general(),
+                ft.Container(height=30),
+                ft.Text("GOLEADORES", size=18, weight="bold"),
+                goleadores_lista,
+                ft.Container(height=20),
+                goleador_turno,
+                ft.Container(height=50)
+            ], expand=True, scroll="always")
+        )
+
+    # --- VISTA: NOTIFICACIONES ---
+    def vista_notificaciones():
+        return ft.Container(
+            padding=ft.Padding(left=15, right=15, top=0, bottom=0),
+            content=ft.Column([
+                ft.Container(height=15),
+                ft.Text("NOTIFICACIONES", size=22, weight="bold"),
+                ft.Container(height=20),
+                ft.Column(
+                    spacing=12,
+                    controls=[
+                        ft.Container(
+                            padding=15, bgcolor="#FFF9E6", border_radius=12,
+                            border=ft.Border.all(2, "#FFB74D"),
+                            content=ft.Row([
+                                ft.Icon("info", size=24, color="#FF6F00"),
+                                ft.Column([
+                                    ft.Text("Recordatorio", size=13, weight="bold", color="#FF6F00"),
+                                    ft.Text("Próximo partido vs Dinamo el 19/04 a las 11:45", size=13, selectable=True)
+                                ], spacing=2)
+                            ], spacing=12, vertical_alignment=ft.CrossAxisAlignment.START, wrap=True)
+                        ),
+                        ft.Container(
+                            padding=15, bgcolor="#E8F5E9", border_radius=12,
+                            border=ft.Border.all(2, "#66BB6A"),
+                            content=ft.Row([
+                                ft.Icon("celebration", size=24, color="#2E7D32"),
+                                ft.Column([
+                                    ft.Text("¡Bien hecho!", size=13, weight="bold", color="#2E7D32"),
+                                    ft.Text("Excelente performance en el último partido", size=13)
+                                ], spacing=2)
+                            ], spacing=12, vertical_alignment=ft.CrossAxisAlignment.START, wrap=True)
+                        ),
+                        ft.Container(
+                            padding=15, bgcolor="#FFEBEE", border_radius=12,
+                            border=ft.Border.all(2, "#EF5350"),
+                            content=ft.Row([
+                                ft.Icon("warning", size=24, color="#C62828"),
+                                ft.Column([
+                                    ft.Text("Importante", size=13, weight="bold", color="#C62828"),
+                                    ft.Text("Llevar camiseta alternativa blanca para el próximo partido", size=13)
+                                ], spacing=2)
+                            ], spacing=12, vertical_alignment=ft.CrossAxisAlignment.START, wrap=True)
+                        )
+                    ]
                 ),
-                ft.Text("TABLA DE POSICIONES", size=22, weight="bold")
-            ],
-            alignment="start",
-            vertical_alignment="center",
-            spacing=10
+                ft.Container(height=20)
+            ], expand=True, scroll="always")
         )
 
-        return ft.Column([
-            ft.Container(padding=15, content=cabecera),
-            ft.Container(height=20),
-            ft.Text("TABLA GENERAL", size=18, weight="bold"),
-            tabla_general(),
-            ft.Container(height=30),
-            ft.Text("GOLEADORES", size=18, weight="bold"),
-            goleadores_lista,
-            ft.Container(height=20),
-            goleador_turno,
-            ft.Container(height=50)
-        ], expand=True, scroll="always")
+    # --- VISTA: TERCER TIEMPO ---
+    def vista_tercer_tiempo():
+        return ft.Container(
+            padding=ft.Padding(left=15, right=15, top=0, bottom=0),
+            content=ft.Column([
+                ft.Container(height=15),
+                ft.Text("TERCER TIEMPO", size=22, weight="bold"),
+                ft.Container(height=20),
+                ft.Container(
+                    padding=15, bgcolor="#FFEBEE", border_radius=10,
+                    content=ft.Column([
+                        ft.Text("Comparte fotos del post-partido, el asado y la camaradería del club", size=14),
+                        ft.FilledButton(
+                            "Subir Foto",
+                            icon="photo_camera",
+                            icon_color="white",
+                            style=ft.ButtonStyle(bgcolor="#C62828", color="white"),
+                            on_click=lambda _: mostrar_snackbar("Función de subir foto próximamente disponible")
+                        )
+                    ], spacing=10)
+                ),
+                ft.Container(height=20)
+            ], expand=True, scroll="always")
+        )
 
+    # --- LAYOUT PRINCIPAL ---
     contenedor_principal = ft.Container(content=vista_partidos(), expand=True)
-    current_view = "fecha"
+
+    area_contenido = ft.Container(content=contenedor_principal, expand=True)
 
     def on_resize(e):
         navegar_a(current_view)
 
     page.on_resize = on_resize
-
     page.appbar = None
 
-    # AppBar personalizado
     custom_appbar = ft.Container(
-        height=100,
+        height=120,
         bgcolor="#B71C1C",
         padding=0,
         margin=0,
         content=ft.Row([
-            ft.IconButton(
-                icon=ft.Icons.MENU,
-                icon_color="white",
-                icon_size=28,
-                on_click=lambda _: toggle_nav_rail()
-            ),
+            ft.Container(width=15),  # Espaciado inicial
             ft.Text("UNIÓN", weight="bold", color="white", size=36),
-            ft.Image(src="UnionEscudo.png", height=102, fit="contain"),
+            ft.Image(src="UnionEscudo.png", height=300, fit="contain"),
             ft.Text("San Martín de los Andes", color="white", size=16),
         ], vertical_alignment=ft.CrossAxisAlignment.CENTER, spacing=15)
     )
@@ -562,6 +494,7 @@ def main(page: ft.Page):
         padding=18,
         bgcolor="#424242",
         border_radius=0,
+        expand=False,
         content=ft.Column([
             ft.Text("UNIÓN - San Martín de los Andes", size=14, weight="bold", color="white"),
             ft.Text("Liga de Veteranos de fútbol", size=12, color="white")
@@ -569,29 +502,15 @@ def main(page: ft.Page):
         alignment=ft.Alignment.CENTER
     )
 
-    # Layout responsive con 20px de separación
-    content_row = ft.Row([
-        ft.Container(
-            content=nav_rail,
-            padding=0,
-            margin=ft.Margin(left=20, top=0, right=0, bottom=0),
-            height=page.window_height - 100,
-        ),
-        ft.Container(
-            content=contenedor_principal,
-            expand=True,
-            padding=10,
-            margin=0
-        )
-    ], expand=True, spacing=0, margin=0)
-    
     main_layout = ft.Column([
         custom_appbar,
-        content_row,
+        tabs_menu,
+        ft.Container(content=area_contenido, expand=True),
         footer
     ], expand=True, spacing=0, margin=0)
-    
+
     page.add(main_layout)
 
+
 if __name__ == "__main__":
-    ft.run(main)
+    ft.app(target=main)
