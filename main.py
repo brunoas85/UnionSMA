@@ -5,8 +5,6 @@ from datetime import datetime
 def main(page: ft.Page):
     page.title = "Unión Senior SMA"
     page.scroll = "always"
-    page.window_width = 450
-    page.window_height = 800
     page.window_resizable = True
     page.bgcolor = "white"
     page.padding = 0
@@ -171,8 +169,6 @@ def main(page: ft.Page):
             padding=ft.Padding(left=15, right=15, top=0, bottom=0),
             content=ft.Column([
                 ft.Container(height=15),
-                ft.Text("INICIO", size=22, weight="bold"),
-                ft.Container(height=20),
                 ft.Container(
                     padding=18, bgcolor="#FFEBEE", border_radius=16,
                     content=ft.Column([
@@ -193,7 +189,18 @@ def main(page: ft.Page):
                         ft.Text(f"{proximo_encuentro['fecha_formateada']} · {proximo_encuentro['hora']}", size=14),
                         ft.Text(f"Estadio: {proximo_encuentro['cancha']}", size=14),
                         ft.Container(height=10),
-                        ft.Text("Asegurate de llegar a tiempo y llevar la camiseta blanca.", size=12, color="grey")
+                        ft.Text("Asegurate de llegar a tiempo y llevar la camiseta blanca.", size=12, color="grey"),
+                        ft.Container(height=5),
+                        ft.FilledButton(
+                            "Confirmar Asistencia",
+                            icon=ft.Icons.CHECK_CIRCLE_OUTLINE,
+                            style=ft.ButtonStyle(
+                                bgcolor="#4CAF50",
+                                color="black",
+                                shape=ft.RoundedRectangleBorder(radius=8),
+                            ),
+                            on_click=lambda _: mostrar_snackbar("Asistencia confirmada")
+                        )
                     ], spacing=8)
                 ),
                 ft.Container(height=20),
@@ -213,66 +220,100 @@ def main(page: ft.Page):
     def vista_fixture():
         partidos_controls = []
         hoy = datetime.now().date()
-
-        for i, partido in enumerate(partidos_lista):
-            fecha_obj = datetime.strptime(partido["fecha"], "%Y-%m-%d").date()
-            fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
-
-            ya_se_jugo = fecha_obj < hoy
-            tiene_resultado = partido.get("resultado", "").strip() != ""
-
-            if ya_se_jugo and tiene_resultado:
-                bgcolor = "#C8E6C9"
-                color_texto = "#1B5E20"
-                color_rival = "#1B5E20"
-            else:
-                bgcolor = "#FFF3E0"
-                color_texto = "#B71C1C"
-                color_rival = "#B71C1C"
-
-            card_controls = [
-                ft.Row([
-                    ft.Column([
-                        ft.Text(f"Fecha {i+1}", size=12, weight="bold", color=color_texto),
-                        ft.Text(fecha_formateada, size=14, weight="bold")
-                    ]),
-                    ft.Text(partido["hora"], size=14, weight="bold")
-                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                ft.Divider(thickness=1, color="#E0E0E0"),
-            ]
-
-            if ya_se_jugo and tiene_resultado:
-                card_controls.append(ft.Text(f"vs {partido['rival']}", size=16, weight="bold", color=color_rival))
-                card_controls.append(
-                    ft.Container(
-                        padding=10, bgcolor="white", border_radius=8,
-                        content=ft.Text(f"Resultado: {partido['resultado']}", size=14, weight="bold", color=color_rival)
-                    )
-                )
-            else:
-                card_controls.append(ft.Text(f"vs {partido['rival']}", size=16, weight="bold", color=color_rival))
-
-            card_controls.append(ft.Text(f"Cancha: {partido['cancha']}", size=12, color="grey"))
-
+        
+        # Sort matches by date first
+        partidos_ordenados = sorted(partidos_lista, key=lambda x: x["fecha"])
+        
+        # Group by date
+        grupos_fecha = {}
+        for partido in partidos_ordenados:
+            try:
+                fecha_obj = datetime.strptime(partido["fecha"], "%Y-%m-%d").date()
+                dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+                meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+                fecha_formateada = f"{dias[fecha_obj.weekday()]}, {fecha_obj.day} de {meses[fecha_obj.month - 1]}"
+            except ValueError:
+                fecha_formateada = "Fecha por confirmar"
+                fecha_obj = datetime.now().date()
+            
+            if fecha_formateada not in grupos_fecha:
+                grupos_fecha[fecha_formateada] = []
+            partido["fecha_obj"] = fecha_obj
+            grupos_fecha[fecha_formateada].append(partido)
+            
+        for fecha_str, partidos in grupos_fecha.items():
+            # Add Header for the Date
             partidos_controls.append(
                 ft.Container(
-                    padding=12,
-                    bgcolor=bgcolor,
-                    border_radius=10,
-                    border=ft.Border.all(1, "#E0E0E0") if not ya_se_jugo else ft.Border.all(2, "#4CAF50"),
-                    content=ft.Column(card_controls, spacing=6)
+                    bgcolor="#F5F5F5",
+                    padding=ft.Padding(left=15, right=15, top=8, bottom=8),
+                    content=ft.Text(fecha_str, weight="bold", size=13, color="#424242"),
+                    border=ft.Border(bottom=ft.BorderSide(1, "#E0E0E0"))
                 )
             )
+            
+            # Add matches for this date
+            for partido in partidos:
+                fecha_obj = partido["fecha_obj"]
+                ya_se_jugo = fecha_obj < hoy
+                tiene_resultado = partido.get("resultado", "").strip() != ""
+                
+                estado = "FINAL" if (ya_se_jugo and tiene_resultado) else partido["hora"]
+                estado_color = "#B71C1C" if not (ya_se_jugo and tiene_resultado) else "#9E9E9E"
+                
+                if tiene_resultado and ya_se_jugo:
+                    marcador = partido["resultado"]
+                    bg_row = "#F5F5F5" # Gris clarito para jugados
+                    texto_equipo_color = "#616161" # Texto atenuado
+                else:
+                    marcador = "v"
+                    bg_row = "white"
+                    texto_equipo_color = "black"
+                
+                row_content = ft.Row([
+                    ft.Container(
+                        width=55, 
+                        content=ft.Text(estado, weight="bold", size=13, color=estado_color)
+                    ),
+                    ft.Container(
+                        expand=True,
+                        content=ft.Row([
+                            ft.Text("UNIÓN SMA", size=14, color=texto_equipo_color, weight="bold" if bg_row == "white" else "normal"),
+                            ft.Container(width=8),
+                            ft.Container(
+                                padding=ft.Padding(left=6, right=6, top=2, bottom=2),
+                                bgcolor="#E0E0E0" if marcador != "v" else "transparent",
+                                border_radius=4,
+                                content=ft.Text(marcador, weight="bold", size=13, color="black")
+                            ),
+                            ft.Container(width=8),
+                            ft.Text(partido["rival"].upper(), size=14, color=texto_equipo_color, weight="bold" if bg_row == "white" else "normal")
+                        ], alignment=ft.MainAxisAlignment.START, wrap=True)
+                    ),
+                    ft.Container(
+                        width=80,
+                        content=ft.Text("Cancha I", size=12, color="grey", text_align=ft.TextAlign.RIGHT)
+                    )
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, vertical_alignment=ft.CrossAxisAlignment.CENTER)
+                
+                partidos_controls.append(
+                    ft.Container(
+                        padding=ft.Padding(left=15, right=15, top=15, bottom=15),
+                        bgcolor=bg_row,
+                        border=ft.Border(bottom=ft.BorderSide(1, "#EEEEEE")),
+                        content=row_content
+                    )
+                )
 
         return ft.Container(
-            padding=ft.Padding(left=15, right=15, top=0, bottom=0),
+            padding=0,
             content=ft.Column([
-                ft.Container(height=15),
-                ft.Text("FIXTURE", size=22, weight="bold"),
-                ft.Container(height=10),
-                ft.Column(spacing=10, scroll="always", expand=True, controls=partidos_controls),
-                ft.Container(height=20)
-            ], expand=True)
+                ft.Container(
+                    padding=ft.Padding(left=15, right=15, top=15, bottom=5),
+                    content=ft.Text("Fixture", size=22, weight="bold")
+                ),
+                ft.Column(spacing=0, scroll="always", expand=True, controls=partidos_controls),
+            ], expand=True, spacing=0)
         )
 
     # --- VISTA: PLANTEL ---
@@ -311,7 +352,7 @@ def main(page: ft.Page):
             padding=ft.Padding(left=15, right=15, top=0, bottom=0),
             content=ft.Column([
                 ft.Container(height=15),
-                ft.Text("PLANTEL Y PERFILES", size=22, weight="bold"),
+                ft.Text("Plantel", size=22, weight="bold"),
                 lista
             ], expand=True)
         )
@@ -378,9 +419,8 @@ def main(page: ft.Page):
             padding=ft.Padding(left=15, right=15, top=0, bottom=0),
             content=ft.Column([
                 ft.Container(height=15),
-                ft.Text("TABLA DE POSICIONES", size=22, weight="bold"),
+                ft.Text("Tabla General", size=22, weight="bold"),
                 ft.Container(height=20),
-                ft.Text("TABLA GENERAL", size=18, weight="bold"),
                 tabla_general(),
                 ft.Container(height=30),
                 ft.Text("GOLEADORES", size=18, weight="bold"),
@@ -397,7 +437,7 @@ def main(page: ft.Page):
             padding=ft.Padding(left=15, right=15, top=0, bottom=0),
             content=ft.Column([
                 ft.Container(height=15),
-                ft.Text("NOTIFICACIONES", size=22, weight="bold"),
+                ft.Text("Notificaciones", size=22, weight="bold"),
                 ft.Container(height=20),
                 ft.Column(
                     spacing=12,
@@ -443,27 +483,93 @@ def main(page: ft.Page):
 
     # --- VISTA: TERCER TIEMPO ---
     def vista_tercer_tiempo():
-        return ft.Container(
-            padding=ft.Padding(left=15, right=15, top=0, bottom=0),
-            content=ft.Column([
-                ft.Container(height=15),
-                ft.Text("TERCER TIEMPO", size=22, weight="bold"),
-                ft.Container(height=20),
+        import os
+        
+        # Rutas de fotos por defecto (la que enviaste)
+        rutas_fotos = ["UnionPlantel.png"]
+        
+        # Intentamos leer la carpeta tercer_tiempo si existe
+        try:
+            for f in os.listdir("assets/tercer_tiempo"):
+                if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
+                    rutas_fotos.append(f"tercer_tiempo/{f}")
+        except FileNotFoundError:
+            pass
+
+        posts_controls = []
+        
+        for foto in rutas_fotos:
+            post_card = ft.Card(
+                margin=ft.Margin.only(bottom=20),
+                elevation=2,
+                bgcolor="white",
+                content=ft.Column([
+                    # Header del Post (Avatar + Nombre)
+                    ft.Container(
+                        padding=10,
+                        content=ft.Row([
+                            ft.CircleAvatar(
+                                bgcolor="#B71C1C", 
+                                content=ft.Text("US", color="white", size=12, weight="bold"),
+                                radius=16
+                            ),
+                            ft.Text("union_sma_oficial", weight="bold", size=14),
+                            ft.Container(expand=True),
+                            ft.Icon(ft.Icons.MORE_VERT, color="grey")
+                        ])
+                    ),
+                    # Imagen
+                    ft.Image(
+                        src=foto, 
+                        fit="contain",
+                        width=float("inf"),
+                    ),
+                    # Acciones (Like, Comment, Share)
+                    ft.Container(
+                        padding=ft.Padding(left=10, right=10, top=5, bottom=0),
+                        content=ft.Row([
+                            ft.IconButton(icon=ft.Icons.FAVORITE_BORDER, icon_size=28, icon_color="black"),
+                            ft.IconButton(icon=ft.Icons.CHAT_BUBBLE_OUTLINE, icon_size=26, icon_color="black"),
+                            ft.IconButton(icon=ft.Icons.SEND_OUTLINED, icon_size=26, icon_color="black"),
+                            ft.Container(expand=True),
+                            ft.IconButton(icon=ft.Icons.BOOKMARK_BORDER, icon_size=28, icon_color="black")
+                        ], spacing=0)
+                    ),
+                    # Likes y Comentarios
+                    ft.Container(
+                        padding=ft.Padding(left=14, right=14, top=0, bottom=15),
+                        content=ft.Column([
+                            ft.Text("Les gusta a 24 personas", weight="bold", size=13),
+                            ft.Row([
+                                ft.Text("union_sma_oficial", weight="bold", size=13),
+                                ft.Text("¡Tercer tiempo banda! 🍻🥩", size=13),
+                            ])
+                        ], spacing=2)
+                    )
+                ], spacing=0)
+            )
+            posts_controls.append(post_card)
+
+        # Si solo está la foto por defecto, mostramos aviso
+        if len(rutas_fotos) == 1:
+            posts_controls.insert(0, 
                 ft.Container(
-                    padding=15, bgcolor="#FFEBEE", border_radius=10,
+                    padding=15, bgcolor="#FFEBEE", border_radius=10, margin=ft.Margin.only(bottom=20, left=15, right=15),
                     content=ft.Column([
-                        ft.Text("Comparte fotos del post-partido, el asado y la camaradería del club", size=14),
-                        ft.FilledButton(
-                            "Subir Foto",
-                            icon="photo_camera",
-                            icon_color="white",
-                            style=ft.ButtonStyle(bgcolor="#C62828", color="white"),
-                            on_click=lambda _: mostrar_snackbar("Función de subir foto próximamente disponible")
-                        )
-                    ], spacing=10)
+                        ft.Text("¡Puedes agregar más fotos guardándolas en la carpeta 'assets/tercer_tiempo'!", size=14, text_align="center"),
+                    ], spacing=10, alignment=ft.MainAxisAlignment.CENTER)
+                )
+            )
+
+        return ft.Container(
+            padding=0,
+            content=ft.Column([
+                ft.Container(
+                    padding=ft.Padding(left=15, right=15, top=15, bottom=5),
+                    content=ft.Text("Tercer Tiempo", size=22, weight="bold")
                 ),
-                ft.Container(height=20)
-            ], expand=True, scroll="always")
+                ft.Column(spacing=0, scroll="always", expand=True, controls=posts_controls)
+            ], expand=True, spacing=0)
         )
 
     # --- LAYOUT PRINCIPAL ---
@@ -480,14 +586,16 @@ def main(page: ft.Page):
     custom_appbar = ft.Container(
         height=120,
         bgcolor="#B71C1C",
-        padding=0,
+        padding=15,
         margin=0,
         content=ft.Row([
-            ft.Container(width=15),  # Espaciado inicial
-            ft.Text("UNIÓN", weight="bold", color="white", size=36),
-            ft.Image(src="UnionEscudo.png", height=300, fit="contain"),
-            ft.Text("San Martín de los Andes", color="white", size=16),
-        ], vertical_alignment=ft.CrossAxisAlignment.CENTER, spacing=15)
+            ft.Column([
+                ft.Text("UNIÓN", weight="bold", color="white", size=32),
+                ft.Text("San Martín de los Andes", color="white", size=14),
+            ], alignment=ft.MainAxisAlignment.CENTER, spacing=0),
+            ft.Container(expand=True),
+            ft.Image(src="UnionEscudo.png", height=100, fit="contain"),
+        ], vertical_alignment=ft.CrossAxisAlignment.CENTER)
     )
 
     footer = ft.Container(
@@ -513,4 +621,4 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
-    ft.app(target=main)
+    ft.run(main)
