@@ -17,9 +17,9 @@ def main(page: ft.Page):
 
     # Pestañas del dashboard
     tabs_menu = ft.Tabs(
-        length=6,
+        length=5,
         selected_index=0,
-        on_change=lambda e: navegar_a(["fecha", "plantel", "tabla", "fixture", "notificaciones", "tercer_tiempo"][e.control.selected_index]),
+        on_change=lambda e: navegar_a(["fecha", "plantel", "tabla", "fixture", "tercer_tiempo"][e.control.selected_index]),
         content=ft.TabBar(
             scrollable=True,
             tabs=[
@@ -27,7 +27,6 @@ def main(page: ft.Page):
                 ft.Tab(icon=ft.Icons.GROUPS, label="Plantel"),
                 ft.Tab(icon=ft.Icons.LEADERBOARD, label="Tabla"),
                 ft.Tab(icon=ft.Icons.SCHEDULE, label="Fixture"),
-                ft.Tab(icon=ft.Icons.NOTIFICATIONS_ACTIVE, label="Notificaciones"),
                 ft.Tab(icon=ft.Icons.SPORTS_BAR, label="Tercer Tiempo"),
             ]
         )
@@ -593,8 +592,15 @@ def main(page: ft.Page):
                 ft.Text("UNIÓN", weight="bold", color="white", size=32),
                 ft.Text("San Martín de los Andes", color="white", size=14),
             ], alignment=ft.MainAxisAlignment.CENTER, spacing=0),
+            ft.Container(width=10),
+            ft.Image(src="UnionEscudo.png", height=115, fit="contain"),
             ft.Container(expand=True),
-            ft.Image(src="UnionEscudo.png", height=100, fit="contain"),
+            ft.IconButton(
+                icon=ft.Icons.NOTIFICATIONS_ACTIVE,
+                icon_color="white",
+                icon_size=30,
+                on_click=lambda _: navegar_a("notificaciones")
+            ),
         ], vertical_alignment=ft.CrossAxisAlignment.CENTER)
     )
 
