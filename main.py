@@ -17,9 +17,9 @@ def main(page: ft.Page):
 
     # Pestañas del dashboard
     tabs_menu = ft.Tabs(
-        length=5,
+        length=6,
         selected_index=0,
-        on_change=lambda e: navegar_a(["fecha", "plantel", "tabla", "fixture", "tercer_tiempo"][e.control.selected_index]),
+        on_change=lambda e: navegar_a(["fecha", "plantel", "tabla", "fixture", "notificaciones", "tercer_tiempo"][e.control.selected_index]),
         content=ft.TabBar(
             scrollable=True,
             tabs=[
@@ -27,6 +27,7 @@ def main(page: ft.Page):
                 ft.Tab(icon=ft.Icons.GROUPS, label="Plantel"),
                 ft.Tab(icon=ft.Icons.LEADERBOARD, label="Tabla"),
                 ft.Tab(icon=ft.Icons.SCHEDULE, label="Fixture"),
+                ft.Tab(icon=ft.Icons.NOTIFICATIONS_ACTIVE, label="Notificaciones"),
                 ft.Tab(icon=ft.Icons.SPORTS_BAR, label="Tercer Tiempo"),
             ]
         )
@@ -193,10 +194,11 @@ def main(page: ft.Page):
                         ft.FilledButton(
                             "Confirmar Asistencia",
                             icon=ft.Icons.CHECK_CIRCLE_OUTLINE,
+                            color="black",
+                            bgcolor="#4CAF50",
                             style=ft.ButtonStyle(
-                                bgcolor="#4CAF50",
-                                color="black",
                                 shape=ft.RoundedRectangleBorder(radius=8),
+                                side=ft.BorderSide(2, "#B71C1C")
                             ),
                             on_click=lambda _: mostrar_snackbar("Asistencia confirmada")
                         )
@@ -574,7 +576,73 @@ def main(page: ft.Page):
     # --- LAYOUT PRINCIPAL ---
     contenedor_principal = ft.Container(content=vista_partidos(), expand=True)
 
-    area_contenido = ft.Container(content=contenedor_principal, expand=True)
+    # --- DRAWER DE NOTIFICACIONES (El "Dropdown" lateral) ---
+    notificaciones_data = [
+        {"titulo": "¡Asado Confirmado!", "cuerpo": "El viernes después del entrenamiento nos juntamos en lo de 'El Negro'. Confirmar asistencia en el grupo.", "icon": ft.Icons.RESTAURANT, "color": "#E67E22"},
+        {"titulo": "Cambio de Horario", "cuerpo": "El partido del domingo contra 'Los Amigos' se adelantó a las 10:00 AM. ¡No se duerman!", "icon": ft.Icons.ALARM, "color": "#B71C1C"},
+        {"titulo": "Indumentaria Nueva", "cuerpo": "Ya llegaron las medias rojas que faltaban. Se retiran hoy por el vestuario.", "icon": ft.Icons.CHECKROOM, "color": "#2E7D32"},
+        {"titulo": "Entrenamiento Suspendido", "cuerpo": "Por la lluvia intensa en San Martín, hoy no hay práctica en la cancha municipal. Nos vemos el jueves.", "icon": ft.Icons.UMBRELLA, "color": "#2980B9"},
+        {"titulo": "Cuota Mensual", "cuerpo": "Muchachos, recuerden que esta semana se vence el pago de la liga. Pasen por lo de Bruno.", "icon": ft.Icons.PAYMENTS, "color": "#F1C40F"},
+    ]
+
+    notif_items = []
+    for n in notificaciones_data:
+        notif_items.append(
+            ft.Container(
+                padding=16,
+                border=ft.Border(bottom=ft.BorderSide(1, "#F0F0F0")),
+                content=ft.Row([
+                    ft.Container(
+                        width=42, height=42, border_radius=21,
+                        bgcolor=ft.Colors.with_opacity(0.1, n["color"]),
+                        content=ft.Icon(n["icon"], color=n["color"], size=22)
+                    ),
+                    ft.Container(width=12),
+                    ft.Column([
+                        ft.Text(n["titulo"], weight="bold", size=14, color=n["color"]),
+                        ft.Text(n["cuerpo"], size=12, color="#555", width=200),
+                    ], spacing=2, expand=True)
+                ], vertical_alignment=ft.CrossAxisAlignment.START)
+            )
+        )
+
+    notif_drawer = ft.Container(
+        visible=False,
+        width=320,
+        bgcolor="white",
+        shadow=ft.BoxShadow(blur_radius=15, color=ft.Colors.with_opacity(0.2, "black")),
+        border=ft.Border(left=ft.BorderSide(1, "#E0E0E0")),
+        content=ft.Column([
+            # Header
+            ft.Container(
+                bgcolor="#B71C1C",
+                padding=ft.Padding(16, 12, 8, 12),
+                content=ft.Row([
+                    ft.Icon(ft.Icons.NOTIFICATIONS_ACTIVE, color="white", size=22),
+                    ft.Text("AVISOS DEL CLUB", color="white", size=18, weight="bold", expand=True),
+                    ft.IconButton(ft.Icons.CLOSE, icon_color="white", on_click=lambda _: toggle_notif_drawer())
+                ])
+            ),
+            # Lista de Notificaciones
+            ft.Column(controls=notif_items, spacing=0, scroll="always", expand=True)
+        ], spacing=0)
+    )
+
+    def toggle_notif_drawer():
+        notif_drawer.visible = not notif_drawer.visible
+        page.update()
+
+    # Stack para que el drawer flote sobre el contenido
+    area_contenido = ft.Stack(
+        controls=[
+            ft.Container(content=contenedor_principal, expand=True),
+            ft.Row(
+                controls=[ft.Container(expand=True), notif_drawer],
+                expand=True,
+            )
+        ],
+        expand=True
+    )
 
     def on_resize(e):
         navegar_a(current_view)
@@ -599,7 +667,7 @@ def main(page: ft.Page):
                 icon=ft.Icons.NOTIFICATIONS_ACTIVE,
                 icon_color="white",
                 icon_size=30,
-                on_click=lambda _: navegar_a("notificaciones")
+                on_click=lambda _: toggle_notif_drawer()
             ),
         ], vertical_alignment=ft.CrossAxisAlignment.CENTER)
     )
